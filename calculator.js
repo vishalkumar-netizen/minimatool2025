@@ -1,6 +1,6 @@
-// --------- Editable: Define Procedure Groups/Types -----------
+// === Define Procedures ===
 
-// Precision procedures (CAT 1 logic)
+// Precision—with CDFA/NonCDFA rules
 const PRECISION_PROC = [
     { code: 'cat1', name: 'CAT 1' },
     { code: 'rnp', name: 'RNP' },
@@ -9,8 +9,7 @@ const PRECISION_PROC = [
     { code: 'lpv', name: 'LPV' },
     { code: 'lnavvnav', name: 'LNAV/VNAV' }
 ];
-
-// Non-Precision, min MDH 250
+// Non-precision, MDH min 250
 const NONPRECISION_PROC_250 = [
     { code: 'loc', name: 'LOC' },
     { code: 'locdme', name: 'LOC+DME' },
@@ -19,29 +18,19 @@ const NONPRECISION_PROC_250 = [
     { code: 'sra', name: 'SRA' },
     { code: 'lda', name: 'LDA' }
 ];
-// Non-Precision, min MDH 300
+// Non-precision, MDH min 300
 const NONPRECISION_PROC_300 = [
     { code: 'vor', name: 'VOR' },
     { code: 'ndbdme', name: 'NDB+DME' }
 ];
-// Non-Precision, min MDH 350
+// Non-precision, MDH min 350
 const NONPRECISION_PROC_350 = [
     { code: 'ndb', name: 'NDB' }
 ];
 // Circling
-const CIRCLING_PROC = [
-    { code: 'circling', name: 'Circling' }
-];
+const CIRCLING_PROC = [{ code: 'circling', name: 'Circling' }];
 
-const ALL_PROCS = [
-    ...PRECISION_PROC.filter(p=>p.code!=='lnavvnav'), // We'll handle LNAV/VNAV separately
-    ...NONPRECISION_PROC_250,
-    ...NONPRECISION_PROC_300,
-    ...NONPRECISION_PROC_350,
-    ...CIRCLING_PROC
-];
-
-// --------- RVR Table Range (FILL OUT with full table) ---------
+// --------- RVR Table Range (FILL OUT with full table!) --------
 const RVR_TABLE_RANGES = [
     {low: 200, high: 210, FALS: 550, IALS: 750, BALS: 1000, NALS: 1200},
     {low: 211, high: 220, FALS: 550, IALS: 800, BALS: 1000, NALS: 1200},
@@ -91,7 +80,6 @@ function getRVRFromTable(dh, lightType) {
     }
     return RVR_TABLE_RANGES[RVR_TABLE_RANGES.length-1][lightType];
 }
-
 function roundUpTo10(x) { return Math.ceil(x/10)*10; }
 
 // ----------- Dynamic UI Rendering -----------
@@ -104,15 +92,12 @@ function renderProcedureCheckboxes() {
     NONPRECISION_PROC_300.forEach(p=>{ html += `<label><input type="checkbox" id="show_${p.code}"> ${p.name}</label>`; });
     NONPRECISION_PROC_350.forEach(p=>{ html += `<label><input type="checkbox" id="show_${p.code}"> ${p.name}</label>`; });
     html += '<label><input type="checkbox" id="show_circling" checked> Circling</label>';
-    // Insert now
     document.getElementById('procedureCheckboxes').innerHTML = html;
 }
 renderProcedureCheckboxes();
 
 function renderCalculators() {
     let html = "";
-
-    // Helper to render CAT rows (input order/IDs consistent)
     const catRows = (proc, inputTypes) => CATS.map(cat=>{
         let fields = '';
         if(inputTypes.includes('DA'))   fields += `<input type="number" placeholder="DA" id="${proc}_${cat}_da">`;
@@ -123,50 +108,37 @@ function renderCalculators() {
         if(inputTypes.includes('VIS'))  fields += `<input type="number" placeholder="VIS" id="${proc}_${cat}_vis" step="0.1">`;
         return `<div class="cat-row"><div class="cat-label">CAT ${cat}</div>${fields}<div class="result" id="${proc}_${cat}_result"></div></div>`;
     }).join('');
-
-    // Render CAT 1 logic blocks
     PRECISION_PROC.forEach(proc=>{
         html += `<div class="calculator" id="${proc.code}Calculator">
             <h3>${proc.name}</h3>
             ${catRows(proc.code, ['DA','DH','RVR'])}
         </div>`;
     });
-
-    // LNAV/VNAV custom input order (DA, DH, RVR)
-    // html += ... same block if you want special
-
-    // Nonprecision MDH min 250
     NONPRECISION_PROC_250.forEach(proc=>{
         html += `<div class="calculator" id="${proc.code}Calculator">
             <h3>${proc.name}</h3>
             ${catRows(proc.code, ['MDA','MDH','RVR'])}
         </div>`;
     });
-    // Nonprecision MDH min 300
     NONPRECISION_PROC_300.forEach(proc=>{
         html += `<div class="calculator" id="${proc.code}Calculator">
             <h3>${proc.name}</h3>
             ${catRows(proc.code, ['MDA','MDH','RVR'])}
         </div>`;
     });
-    // Nonprecision MDH min 350
     NONPRECISION_PROC_350.forEach(proc=>{
         html += `<div class="calculator" id="${proc.code}Calculator">
             <h3>${proc.name}</h3>
             ${catRows(proc.code, ['MDA','MDH','RVR'])}
         </div>`;
     });
-    // Circling
     html += `<div class="calculator" id="circlingCalculator">
         <h3>Circling</h3>
         ${catRows('circling', ['MDA','MDH','VIS'])}
     </div>`;
-
     document.getElementById('calculatorsArea').innerHTML = html;
 }
 renderCalculators();
-
-// Show/hide proc logic
 function updateCalculatorVisibility() {
     [...PRECISION_PROC, ...NONPRECISION_PROC_250, ...NONPRECISION_PROC_300, ...NONPRECISION_PROC_350, ...CIRCLING_PROC].forEach(proc=>{
         const show = document.getElementById('show_'+proc.code)?.checked;
@@ -200,22 +172,17 @@ function calculate() {
             const da = parseFloat(document.getElementById(`${proc.code}_${cat}_da`).value)||0;
             const dh = parseFloat(document.getElementById(`${proc.code}_${cat}_dh`).value)||0;
             const rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`).value)||0;
-
-            // Logic (same for all precision procs)
             const dhRaised = Math.max(dh,200);
             const daCalc = thrElev + dhRaised;
             const daFinal = Math.max(da, daCalc);
             const rvrTable = getRVRFromTable(dhRaised,lightType);
             let rvrFinal = Math.max(rvr,rvrTable);
-
-            // Special RVR cap logic for CDFA if proc is CAT 1/LNAVVNAV/RNP/etc (not Circling/Non-Precision)
             let isNonCDFAForCat = isNonCDFAForAll || (["A","B"].includes(cat) ? isNonCDFAForAB : isNonCDFAForCD);
+            // CDFA cap as now applies to ALL except Circling
             if (isProcCDFA && !isNonCDFAForCat) {
                 const maxRVR = ['A','B'].includes(cat)?1500:2400;
                 if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
             }
-
-            // Show result
             const res = `DA: ${daFinal}(${dhRaised}), RVR: ${rvrFinal}m`;
             document.getElementById(`${proc.code}_${cat}_result`).innerText = da||dh||rvr ? res : '';
             summary[proc.code][cat] = da||dh||rvr ? res : '';
@@ -233,7 +200,6 @@ function calculate() {
             const mda = parseFloat(document.getElementById(`${proc.code}_${cat}_mda`).value)||0;
             const mdh = parseFloat(document.getElementById(`${proc.code}_${cat}_mdh`).value)||0;
             const rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`).value)||0;
-
             let mdhUsed = mdh;
             let calcMDA = mda;
             if(mdh>0 && mdh<minMDH) {
@@ -245,8 +211,13 @@ function calculate() {
             }
             // RVR from Table always, using MDH used in result
             const rvrTable = getRVRFromTable(mdhUsed||minMDH, lightType);
-            const rvrFinal = Math.max(rvr||0, rvrTable);
-
+            let rvrFinal = Math.max(rvr||0, rvrTable);
+            let isNonCDFAForCat = isNonCDFAForAll || (["A","B"].includes(cat) ? isNonCDFAForAB : isNonCDFAForCD);
+            // CDFA cap applies to these as well!
+            if (isProcCDFA && !isNonCDFAForCat) {
+                const maxRVR = ['A','B'].includes(cat)?1500:2400;
+                if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
+            }
             const res = `MDA: ${calcMDA}(${mdhUsed}), RVR: ${rvrFinal}m`;
             document.getElementById(`${proc.code}_${cat}_result`).innerText = mda||mdh||rvr?res:"";
             summary[proc.code][cat] = mda||mdh||rvr?res:"";
@@ -274,9 +245,7 @@ function calculate() {
     updateSummaryResults(summary);
 }
 
-
 function updateSummaryResults(results) {
-    // Only include ticked procedures (in order)
     const blocks = [
         ...PRECISION_PROC,
         ...NONPRECISION_PROC_250,
