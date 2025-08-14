@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviation Calculator - minimatool2025</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .top-inputs {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .input-group label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .input-group input, .input-group select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 120px;
+        }
+        
+        .procedure-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .calculators {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .calculator {
+            flex: 1;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .calculator h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #333;
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .cat-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+        
+        .cat-label {
+            font-weight: bold;
+            width: 50px;
+            color: #555;
+        }
+        
+        .cat-row input {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        
+        .result {
+            margin-left: 10px;
+            font-weight: bold;
+            color: #0066cc;
+        }
+        
+        .calculate-btn {
+            background: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px auto;
+            display: block;
+        }
+        
+        .calculate-btn:hover {
+            background: #0056b3;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .checkbox-group {
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .calculators {
+                flex-direction: column;
+            }
+            .top-inputs {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Aviation Calculator Tool</h1>
+        
+        <div class="top-inputs">
+            <div class="input-group">
+                <label>AD Elev (m)</label>
+                <input type="number" id="adElev" placeholder="0">
+            </div>
+            
+            <div class="input-group">
+                <label>THR Elev (m)</label>
+                <input type="number" id="thrElev" placeholder="0">
+            </div>
+            
+            <div class="input-group">
+                <label>Light</label>
+                <select id="lightType">
+                    <option value="FALS">FALS</option>
+                    <option value="IALS">IALS</option>
+                    <option value="BALS">BALS</option>
+                    <option value="NALS">NALS</option>
+                </select>
+            </div>
+            
+            <div class="procedure-group">
+                <label>Procedure:</label>
+                <input type="radio" name="procedure" value="CDFA" id="cdfa" checked>
+                <label for="cdfa">CDFA</label>
+                <input type="radio" name="procedure" value="Non-CDFA" id="noncdfa">
+                <label for="noncdfa">Non-CDFA</label>
+            </div>
+            
+            <div id="nonCdfaOptions" style="display: none;">
+                <label>Apply to:</label>
+                <input type="checkbox" id="catAB"> CAT A/B
+                <input type="checkbox" id="catCD"> CAT C/D
+                <input type="checkbox" id="allCats"> All CATs
+            </div>
+        </div>
+        
+        <div class="checkbox-group">
+            <input type="checkbox" id="showCat1" checked> Show CAT 1
+            <input type="checkbox" id="showLnavVnav" checked> Show LNAV/VNAV
+            <input type="checkbox" id="showCircling" checked> Show Circling
+        </div>
+        
+        <div class="calculators">
+            <!-- CAT 1 Calculator -->
+            <div class="calculator" id="cat1Calculator">
+                <h3>CAT 1</h3>
+                <div class="cat-row">
+                    <div class="cat-label">CAT A</div>
+                    <input type="number" placeholder="DH" id="cat1_a_dh">
+                    <input type="number" placeholder="DA" id="cat1_a_da">
+                    <input type="number" placeholder="RVR" id="cat1_a_rvr">
+                    <div class="result" id="cat1_a_result"></div>
+                </div>
+                <div class="cat-row">
+                    <div class="cat-label">CAT B</div>
+                    <input type="number" placeholder="DH" id="cat1_b_dh">
+                    <input type="number" placeholder="DA" id="cat1_b_da">
+                    <input type="number" placeholder="RVR" id="cat1_b_rvr">
+                    <div class="result" id="cat1_b_result"></div>
+                </div>
+                <div class="cat-row">
+                    <div class="cat-label">CAT C</div>
+                    <input type="number" placeholder="DH" id="cat1_c_dh">
+                    <input type="number" placeholder="DA" id="cat1_c_da">
+                    <input type="number" placeholder="RVR" id="cat1_c_rvr">
+                    <div class="result" id="cat1_c_result"></div>
+                </div>
+                <div class="cat-row">
+                    <div class="cat-label">CAT D</div>
+                    <input type="number" placeholder="DH" id="cat1_d_dh">
+                    <input type="number" placeholder="DA" id="cat1_d_da">
+                    <input type="number" placeholder="RVR" id="cat1_d_rvr">
+                    <div class="result" id="cat1_d_result"></div>
+                </div>
+            </div>
+            
+            <!-- LNAV/VNAV Calculator -->
+            <div class="calculator" id="lnavVnavCalculator">
+                <h3>LNAV/VNAV</h3>
+                <div class="cat-row">
+                    <div class="cat-label">CAT A</div>
+                    <input type="number" placeholder="DH" id="lnav_a_dh">
+                    <input type="number" placeholder="DA" id="lnav_a_da">
+                    <input type="number" placeholder="RVR" id="lnav_a_rvr">
+                    <div class="result" id="lnav_a_result"></div>
+                </div>
+                <div class="cat-row">
+                    <div class="cat-label">CAT B</div>
+                    <input type="number" placeholder="DH" id="lnav_b_dh">
+                    <input type="number" placeholder="DA" id="lnav_b_da">
+                    <input type="number" placeholder="RVR" id="lnav_b_rvr">
+                    <div class="result" id="lnav_b_result"></div>
+                </div>
+                <div class="cat-row">
+                    <div class="cat-label">CAT C</div>
+                    <input type="number" placeholder="DH" id="lnav_c_dh">
+                    <input type="number" placeholder="DA" id="lnav_c_da">
+                    <input type="number" placeholder="RVR" id="lnav_c_rvr">
+                    <div class="result" id="lnav_c_result"></div>
+                </div>
+                <div class="cat-row">
+                    <div class="cat-label">CAT D</div>
+                    <input type="number" placeholder="DH" id="lnav_d_dh">
+                    <input type="number" placeholder="DA" id="lnav_d_da">
+                    <input type="number" placeholder="RVR" id="lnav_d_rvr">
+                    <div class="result" id="lnav_d_result"></div>
+                </div>
+            </div>
+            
+            <!-- Circling Calculator -->
+            <div class="calculator" id="circlingCalculator">
+                <h3>Circling</h3>
+                <div class="cat-row">
+                    <div class="cat-label">CAT A</div>
+                    <input type="number" placeholder="MDH" id="circ_a_mdh">
+                    <input type="number" placeholder="MDA" id="circ_a_mda">
+                    <input type="number" placeholder="VIS" id="circ_a_vis" step="0.1">
+                    <div class="result" id="circ_a_result"></div>
+                </div>
+                <div class="cat-row">
+                    <div class="cat-label">CAT B</div>
+                    <input type="number" placeholder="MDH" id="circ_b_mdh">
+                    <input type="number" placeholder="MDA" id="circ_b_mda">
+                    <input type="number" placeholder="VIS" id="circ_b_vis" step="0.1">
+                    <div class="result" id="circ_b_result"></div>
+                </div>
+                <div class="cat-row">
+                    <div class="cat-label">CAT C</div>
+                    <input type="number" placeholder="MDH" id="circ_c_mdh">
+                    <input type="number" placeholder="MDA" id="circ_c_mda">
+                    <input type="number" placeholder="VIS" id="circ_c_vis" step="0.1">
+                    <div class="result" id="circ_c_result"></div>
+                </div>
+                <div class="cat-row">
+                    <div class="cat-label">CAT D</div>
+                    <input type="number" placeholder="MDH" id="circ_d_mdh">
+                    <input type="number" placeholder="MDA" id="circ_d_mda">
+                    <input type="number" placeholder="VIS" id="circ_d_vis" step="0.1">
+                    <div class="result" id="circ_d_result"></div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="calculate-btn" onclick="calculate()">Calculate All</button>
+        
+        <div class="footer">
+            This tool created by Vishal K Basson
+        </div>
+    </div>
+
+    <script src="calculator.js"></script>
+</body>
+</html>
