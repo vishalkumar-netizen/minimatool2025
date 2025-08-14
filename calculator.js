@@ -45,39 +45,30 @@ const RVR_TABLE_RANGES = [
     {low: 1101, high: 1200, FALS: 4600, IALS: 4900, BALS: 5000, NALS: 5000},
     {low: 1201, high: 9999, FALS: 5000, IALS: 5000, BALS: 5000, NALS: 5000}
 ];
-
 function getRVRFromTable(dh, lightType) {
     for (let row of RVR_TABLE_RANGES) {
         if (dh >= row.low && dh <= row.high) {
             return row[lightType];
         }
     }
-    // If above table, use last row
     return RVR_TABLE_RANGES[RVR_TABLE_RANGES.length - 1][lightType];
 }
 
-// The rest of your script - unchanged logic or as previously built
-// ... Keep utility functions, calc logic, and input handlers, e.g.,
+// --- Unchanged logic for other features (compact for clarity) ---
 
 function roundUpTo10(value) {
     return Math.ceil(value / 10) * 10;
 }
 
 function calculateCAT1(cat, dh, da, rvr, thrElev, lightType, isProcCDFA, isNonCDFAForCat) {
-    // Raise DH to minimum 200
     const dhRaised = Math.max(dh || 0, 200);
-    // Calculate DA
     const daCalc = (thrElev || 0) + dhRaised;
     const daFinal = Math.max(da || 0, daCalc);
-    // Calculate RVR (RANGE-BASED)
     const rvrTable = getRVRFromTable(dhRaised, lightType);
     let rvrFinal = Math.max(rvr || 0, rvrTable);
-    // CDFA RVR caps
     if (isProcCDFA && !isNonCDFAForCat) {
         const maxRVR = (cat === 'A' || cat === 'B') ? 1500 : 2400;
-        if ((rvrFinal > maxRVR) && (!rvr || rvr <= maxRVR)) {
-            rvrFinal = maxRVR;
-        }
+        if (rvrFinal > maxRVR && (!rvr || rvr <= maxRVR)) rvrFinal = maxRVR;
     }
     return {
         da: `${daFinal}(${dhRaised})`,
@@ -86,20 +77,14 @@ function calculateCAT1(cat, dh, da, rvr, thrElev, lightType, isProcCDFA, isNonCD
 }
 
 function calculateLNAVVNAV(cat, dh, da, rvr, thrElev, lightType, isProcCDFA, isNonCDFAForCat) {
-    // Raise DH to minimum 250
     const dhRaised = Math.max(dh || 0, 250);
-    // Calculate DA
     const daCalc = (thrElev || 0) + dhRaised;
     const daFinal = Math.max(da || 0, daCalc);
-    // Calculate RVR (RANGE-BASED)
     const rvrTable = getRVRFromTable(dhRaised, lightType);
     let rvrFinal = Math.max(rvr || 0, rvrTable);
-    // CDFA RVR caps
     if (isProcCDFA && !isNonCDFAForCat) {
         const maxRVR = (cat === 'A' || cat === 'B') ? 1500 : 2400;
-        if ((rvrFinal > maxRVR) && (!rvr || rvr <= maxRVR)) {
-            rvrFinal = maxRVR;
-        }
+        if (rvrFinal > maxRVR && (!rvr || rvr <= maxRVR)) rvrFinal = maxRVR;
     }
     return {
         da: `${daFinal}(${dhRaised})`,
@@ -108,19 +93,49 @@ function calculateLNAVVNAV(cat, dh, da, rvr, thrElev, lightType, isProcCDFA, isN
 }
 
 function calculateCircling(cat, mdh, mda, vis, adElev) {
-    // Category minimums for MDH
     const catMinimums = {A: 400, B: 500, C: 600, D: 700};
     const mdhRaised = Math.max(mdh || 0, catMinimums[cat]);
-    // Calculate MDA
     const mdaCalc = roundUpTo10((adElev || 0) + mdhRaised);
     const mdaFinal = Math.max(mda || 0, mdaCalc);
-    // Calculate VIS
     const visDefaults = {A: 1.5, B: 1.6, C: 2.4, D: 3.6};
     const visFinal = Math.max(vis || 0, visDefaults[cat]);
     return {
         mda: `${mdaFinal}(${mdhRaised})`,
         vis: `${visFinal}km`
     };
+}
+
+function updateSummaryResults(allResults) {
+    let html = `
+    <div style="border-top:1px solid #ccc;padding-top:24px;margin-top:12px;">
+      <h2 style="text-align:center;">Summary of Results</h2>
+      <div style="margin-bottom:18px;">
+        <h3>CAT 1</h3>
+        ${
+            ['A','B','C','D'].map(cat=>
+                `<div>CAT ${cat}: ${allResults.cat1[cat] || '-'}</div>`
+            ).join('')
+        }
+      </div>
+      <div style="margin-bottom:18px;">
+        <h3>LNAV/VNAV</h3>
+        ${
+            ['A','B','C','D'].map(cat=>
+                `<div>CAT ${cat}: ${allResults.lnav[cat] || '-'}</div>`
+            ).join('')
+        }
+      </div>
+      <div style="margin-bottom:18px;">
+        <h3>Circling</h3>
+        ${
+            ['A','B','C','D'].map(cat=>
+                `<div>CAT ${cat}: ${allResults.circling[cat] || '-'}</div>`
+            ).join('')
+        }
+      </div>
+    </div>
+    `;
+    document.getElementById('summaryResults').innerHTML = html;
 }
 
 function calculate() {
@@ -132,10 +147,12 @@ function calculate() {
     const isNonCDFAForCD = document.getElementById('catCD').checked;
     const isNonCDFAForAll = document.getElementById('allCats').checked;
     const cats = ['A', 'B', 'C', 'D'];
+    let cat1Results = {}, lnavResults = {}, circlingResults = {};
+
     cats.forEach(cat => {
         const isNonCDFAForCat = isNonCDFAForAll ||
             (cat === 'A' || cat === 'B' ? isNonCDFAForAB : isNonCDFAForCD);
-        // CAT 1 Calculations
+        // CAT 1
         const cat1DH = parseFloat(document.getElementById(`cat1_${cat.toLowerCase()}_dh`).value) || 0;
         const cat1DA = parseFloat(document.getElementById(`cat1_${cat.toLowerCase()}_da`).value) || 0;
         const cat1RVR = parseFloat(document.getElementById(`cat1_${cat.toLowerCase()}_rvr`).value) || 0;
@@ -143,8 +160,10 @@ function calculate() {
             const cat1Result = calculateCAT1(cat, cat1DH, cat1DA, cat1RVR, thrElev, lightType, isProcCDFA, isNonCDFAForCat);
             document.getElementById(`cat1_${cat.toLowerCase()}_result`).innerHTML = 
                 `DA: ${cat1Result.da}<br>RVR: ${cat1Result.rvr}`;
-        }
-        // LNAV/VNAV Calculations
+            cat1Results[cat] = `DA: ${cat1Result.da}, RVR: ${cat1Result.rvr}`;
+        } else { cat1Results[cat] = ""; document.getElementById(`cat1_${cat.toLowerCase()}_result`).innerHTML = ""; }
+
+        // LNAV/VNAV
         const lnavDH = parseFloat(document.getElementById(`lnav_${cat.toLowerCase()}_dh`).value) || 0;
         const lnavDA = parseFloat(document.getElementById(`lnav_${cat.toLowerCase()}_da`).value) || 0;
         const lnavRVR = parseFloat(document.getElementById(`lnav_${cat.toLowerCase()}_rvr`).value) || 0;
@@ -152,8 +171,10 @@ function calculate() {
             const lnavResult = calculateLNAVVNAV(cat, lnavDH, lnavDA, lnavRVR, thrElev, lightType, isProcCDFA, isNonCDFAForCat);
             document.getElementById(`lnav_${cat.toLowerCase()}_result`).innerHTML = 
                 `DA: ${lnavResult.da}<br>RVR: ${lnavResult.rvr}`;
-        }
-        // Circling Calculations
+            lnavResults[cat] = `DA: ${lnavResult.da}, RVR: ${lnavResult.rvr}`;
+        } else { lnavResults[cat] = ""; document.getElementById(`lnav_${cat.toLowerCase()}_result`).innerHTML = ""; }
+
+        // Circling
         const circMDH = parseFloat(document.getElementById(`circ_${cat.toLowerCase()}_mdh`).value) || 0;
         const circMDA = parseFloat(document.getElementById(`circ_${cat.toLowerCase()}_mda`).value) || 0;
         const circVIS = parseFloat(document.getElementById(`circ_${cat.toLowerCase()}_vis`).value) || 0;
@@ -161,33 +182,24 @@ function calculate() {
             const circResult = calculateCircling(cat, circMDH, circMDA, circVIS, adElev);
             document.getElementById(`circ_${cat.toLowerCase()}_result`).innerHTML = 
                 `MDA: ${circResult.mda}<br>VIS: ${circResult.vis}`;
-        }
+            circlingResults[cat] = `MDA: ${circResult.mda}, VIS: ${circResult.vis}`;
+        } else { circlingResults[cat] = ""; document.getElementById(`circ_${cat.toLowerCase()}_result`).innerHTML = ""; }
     });
+    updateSummaryResults({cat1: cat1Results, lnav: lnavResults, circling: circlingResults});
 }
 
-// Auto-calculate on input change
 document.addEventListener('input', function(e) {
-    if (e.target.type === 'number') {
-        calculate();
-    }
+    if (e.target.type === 'number') calculate();
 });
-
 document.addEventListener('change', function(e) {
-    if (e.target.type === 'radio' || e.target.type === 'checkbox' || e.target.type === 'select-one') {
-        calculate();
-    }
+    if (e.target.type === 'radio' || e.target.type === 'checkbox' || e.target.type === 'select-one') calculate();
 });
-
-// Show/hide procedure options
 document.getElementById('noncdfa').addEventListener('change', function() {
     document.getElementById('nonCdfaOptions').style.display = this.checked ? 'block' : 'none';
 });
-
 document.getElementById('cdfa').addEventListener('change', function() {
     document.getElementById('nonCdfaOptions').style.display = this.checked ? 'none' : 'block';
 });
-
-// Show/hide calculators
 document.getElementById('showCat1').addEventListener('change', function() {
     document.getElementById('cat1Calculator').style.display = this.checked ? 'block' : 'none';
 });
