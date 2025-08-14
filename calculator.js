@@ -1,9 +1,47 @@
-// ---------------------------------------------------------------------
-// RVR Range Table (from your uploaded image)
-// Each row has a low/high range and the four lighting columns.
-// NOTE: Only a subset is shown here for brevity. You need to fill in
-// ALL the rows using your full table! (Below are several as a template.)
-// ---------------------------------------------------------------------
+// --------- Editable: Define Procedure Groups/Types -----------
+
+// Precision procedures (CAT 1 logic)
+const PRECISION_PROC = [
+    { code: 'cat1', name: 'CAT 1' },
+    { code: 'rnp', name: 'RNP' },
+    { code: 'gls', name: 'GLS' },
+    { code: 'par', name: 'PAR' },
+    { code: 'lpv', name: 'LPV' },
+    { code: 'lnavvnav', name: 'LNAV/VNAV' }
+];
+
+// Non-Precision, min MDH 250
+const NONPRECISION_PROC_250 = [
+    { code: 'loc', name: 'LOC' },
+    { code: 'locdme', name: 'LOC+DME' },
+    { code: 'vordme', name: 'VOR+DME' },
+    { code: 'lnav', name: 'LNAV' },
+    { code: 'sra', name: 'SRA' },
+    { code: 'lda', name: 'LDA' }
+];
+// Non-Precision, min MDH 300
+const NONPRECISION_PROC_300 = [
+    { code: 'vor', name: 'VOR' },
+    { code: 'ndbdme', name: 'NDB+DME' }
+];
+// Non-Precision, min MDH 350
+const NONPRECISION_PROC_350 = [
+    { code: 'ndb', name: 'NDB' }
+];
+// Circling
+const CIRCLING_PROC = [
+    { code: 'circling', name: 'Circling' }
+];
+
+const ALL_PROCS = [
+    ...PRECISION_PROC.filter(p=>p.code!=='lnavvnav'), // We'll handle LNAV/VNAV separately
+    ...NONPRECISION_PROC_250,
+    ...NONPRECISION_PROC_300,
+    ...NONPRECISION_PROC_350,
+    ...CIRCLING_PROC
+];
+
+// --------- RVR Table Range (FILL OUT with full table) ---------
 const RVR_TABLE_RANGES = [
     {low: 200, high: 210, FALS: 550, IALS: 750, BALS: 1000, NALS: 1200},
     {low: 211, high: 220, FALS: 550, IALS: 800, BALS: 1000, NALS: 1200},
@@ -45,167 +83,226 @@ const RVR_TABLE_RANGES = [
     {low: 1101, high: 1200, FALS: 4600, IALS: 4900, BALS: 5000, NALS: 5000},
     {low: 1201, high: 9999, FALS: 5000, IALS: 5000, BALS: 5000, NALS: 5000}
 ];
+
+// ----------- Helper: RVR from Table (range lookup) -----------
 function getRVRFromTable(dh, lightType) {
     for (let row of RVR_TABLE_RANGES) {
-        if (dh >= row.low && dh <= row.high) {
-            return row[lightType];
-        }
+        if (dh >= row.low && dh <= row.high) return row[lightType];
     }
-    return RVR_TABLE_RANGES[RVR_TABLE_RANGES.length - 1][lightType];
+    return RVR_TABLE_RANGES[RVR_TABLE_RANGES.length-1][lightType];
 }
 
-// --- Unchanged logic for other features (compact for clarity) ---
+function roundUpTo10(x) { return Math.ceil(x/10)*10; }
 
-function roundUpTo10(value) {
-    return Math.ceil(value / 10) * 10;
+// ----------- Dynamic UI Rendering -----------
+const CATS = ['A','B','C','D'];
+
+function renderProcedureCheckboxes() {
+    let html = "";
+    PRECISION_PROC.forEach(p=>{ html += `<label><input type="checkbox" id="show_${p.code}" checked> ${p.name}</label>`; });
+    NONPRECISION_PROC_250.forEach(p=>{ html += `<label><input type="checkbox" id="show_${p.code}"> ${p.name}</label>`; });
+    NONPRECISION_PROC_300.forEach(p=>{ html += `<label><input type="checkbox" id="show_${p.code}"> ${p.name}</label>`; });
+    NONPRECISION_PROC_350.forEach(p=>{ html += `<label><input type="checkbox" id="show_${p.code}"> ${p.name}</label>`; });
+    html += '<label><input type="checkbox" id="show_circling" checked> Circling</label>';
+    // Insert now
+    document.getElementById('procedureCheckboxes').innerHTML = html;
 }
+renderProcedureCheckboxes();
 
-function calculateCAT1(cat, dh, da, rvr, thrElev, lightType, isProcCDFA, isNonCDFAForCat) {
-    const dhRaised = Math.max(dh || 0, 200);
-    const daCalc = (thrElev || 0) + dhRaised;
-    const daFinal = Math.max(da || 0, daCalc);
-    const rvrTable = getRVRFromTable(dhRaised, lightType);
-    let rvrFinal = Math.max(rvr || 0, rvrTable);
-    if (isProcCDFA && !isNonCDFAForCat) {
-        const maxRVR = (cat === 'A' || cat === 'B') ? 1500 : 2400;
-        if (rvrFinal > maxRVR && (!rvr || rvr <= maxRVR)) rvrFinal = maxRVR;
-    }
-    return {
-        da: `${daFinal}(${dhRaised})`,
-        rvr: `${rvrFinal}m`
-    };
-}
+function renderCalculators() {
+    let html = "";
 
-function calculateLNAVVNAV(cat, dh, da, rvr, thrElev, lightType, isProcCDFA, isNonCDFAForCat) {
-    const dhRaised = Math.max(dh || 0, 250);
-    const daCalc = (thrElev || 0) + dhRaised;
-    const daFinal = Math.max(da || 0, daCalc);
-    const rvrTable = getRVRFromTable(dhRaised, lightType);
-    let rvrFinal = Math.max(rvr || 0, rvrTable);
-    if (isProcCDFA && !isNonCDFAForCat) {
-        const maxRVR = (cat === 'A' || cat === 'B') ? 1500 : 2400;
-        if (rvrFinal > maxRVR && (!rvr || rvr <= maxRVR)) rvrFinal = maxRVR;
-    }
-    return {
-        da: `${daFinal}(${dhRaised})`,
-        rvr: `${rvrFinal}m`
-    };
-}
+    // Helper to render CAT rows (input order/IDs consistent)
+    const catRows = (proc, inputTypes) => CATS.map(cat=>{
+        let fields = '';
+        if(inputTypes.includes('DA'))   fields += `<input type="number" placeholder="DA" id="${proc}_${cat}_da">`;
+        if(inputTypes.includes('MDA'))  fields += `<input type="number" placeholder="MDA" id="${proc}_${cat}_mda">`;
+        if(inputTypes.includes('DH'))   fields += `<input type="number" placeholder="DH" id="${proc}_${cat}_dh">`;
+        if(inputTypes.includes('MDH'))  fields += `<input type="number" placeholder="MDH" id="${proc}_${cat}_mdh">`;
+        if(inputTypes.includes('RVR'))  fields += `<input type="number" placeholder="RVR" id="${proc}_${cat}_rvr">`;
+        if(inputTypes.includes('VIS'))  fields += `<input type="number" placeholder="VIS" id="${proc}_${cat}_vis" step="0.1">`;
+        return `<div class="cat-row"><div class="cat-label">CAT ${cat}</div>${fields}<div class="result" id="${proc}_${cat}_result"></div></div>`;
+    }).join('');
 
-function calculateCircling(cat, mdh, mda, vis, adElev) {
-    const catMinimums = {A: 400, B: 500, C: 600, D: 700};
-    const mdhRaised = Math.max(mdh || 0, catMinimums[cat]);
-    const mdaCalc = roundUpTo10((adElev || 0) + mdhRaised);
-    const mdaFinal = Math.max(mda || 0, mdaCalc);
-    const visDefaults = {A: 1.5, B: 1.6, C: 2.4, D: 3.6};
-    const visFinal = Math.max(vis || 0, visDefaults[cat]);
-    return {
-        mda: `${mdaFinal}(${mdhRaised})`,
-        vis: `${visFinal}km`
-    };
-}
+    // Render CAT 1 logic blocks
+    PRECISION_PROC.forEach(proc=>{
+        html += `<div class="calculator" id="${proc.code}Calculator">
+            <h3>${proc.name}</h3>
+            ${catRows(proc.code, ['DA','DH','RVR'])}
+        </div>`;
+    });
 
-function updateSummaryResults(allResults) {
-    let html = `
-    <div style="border-top:1px solid #ccc;padding-top:24px;margin-top:12px;">
-      <h2 style="text-align:center;">Summary of Results</h2>
-      <div style="margin-bottom:18px;">
-        <h3>CAT 1</h3>
-        ${
-            ['A','B','C','D'].map(cat=>
-                `<div>CAT ${cat}: ${allResults.cat1[cat] || '-'}</div>`
-            ).join('')
-        }
-      </div>
-      <div style="margin-bottom:18px;">
-        <h3>LNAV/VNAV</h3>
-        ${
-            ['A','B','C','D'].map(cat=>
-                `<div>CAT ${cat}: ${allResults.lnav[cat] || '-'}</div>`
-            ).join('')
-        }
-      </div>
-      <div style="margin-bottom:18px;">
+    // LNAV/VNAV custom input order (DA, DH, RVR)
+    // html += ... same block if you want special
+
+    // Nonprecision MDH min 250
+    NONPRECISION_PROC_250.forEach(proc=>{
+        html += `<div class="calculator" id="${proc.code}Calculator">
+            <h3>${proc.name}</h3>
+            ${catRows(proc.code, ['MDA','MDH','RVR'])}
+        </div>`;
+    });
+    // Nonprecision MDH min 300
+    NONPRECISION_PROC_300.forEach(proc=>{
+        html += `<div class="calculator" id="${proc.code}Calculator">
+            <h3>${proc.name}</h3>
+            ${catRows(proc.code, ['MDA','MDH','RVR'])}
+        </div>`;
+    });
+    // Nonprecision MDH min 350
+    NONPRECISION_PROC_350.forEach(proc=>{
+        html += `<div class="calculator" id="${proc.code}Calculator">
+            <h3>${proc.name}</h3>
+            ${catRows(proc.code, ['MDA','MDH','RVR'])}
+        </div>`;
+    });
+    // Circling
+    html += `<div class="calculator" id="circlingCalculator">
         <h3>Circling</h3>
-        ${
-            ['A','B','C','D'].map(cat=>
-                `<div>CAT ${cat}: ${allResults.circling[cat] || '-'}</div>`
-            ).join('')
-        }
-      </div>
-    </div>
-    `;
-    document.getElementById('summaryResults').innerHTML = html;
-}
+        ${catRows('circling', ['MDA','MDH','VIS'])}
+    </div>`;
 
+    document.getElementById('calculatorsArea').innerHTML = html;
+}
+renderCalculators();
+
+// Show/hide proc logic
+function updateCalculatorVisibility() {
+    [...PRECISION_PROC, ...NONPRECISION_PROC_250, ...NONPRECISION_PROC_300, ...NONPRECISION_PROC_350, ...CIRCLING_PROC].forEach(proc=>{
+        const show = document.getElementById('show_'+proc.code)?.checked;
+        document.getElementById(proc.code+'Calculator').style.display = show ? 'block':'none';
+    });
+}
+document.getElementById('procedureCheckboxes').addEventListener('change', updateCalculatorVisibility);
+updateCalculatorVisibility();
+
+// --- CDFA radio/check logic as before
+document.getElementById('noncdfa').addEventListener('change',function(){document.getElementById('nonCdfaOptions').style.display = this.checked ? 'block' : 'none';});
+document.getElementById('cdfa').addEventListener('change',function(){document.getElementById('nonCdfaOptions').style.display = this.checked ? 'none' : 'block';});
+
+// --- MAIN CALCULATION ENGINES ---
 function calculate() {
-    const adElev = parseFloat(document.getElementById('adElev').value) || 0;
-    const thrElev = parseFloat(document.getElementById('thrElev').value) || 0;
+    const adElev = parseFloat(document.getElementById('adElev').value)||0;
+    const thrElev = parseFloat(document.getElementById('thrElev').value)||0;
     const lightType = document.getElementById('lightType').value;
     const isProcCDFA = document.getElementById('cdfa').checked;
     const isNonCDFAForAB = document.getElementById('catAB').checked;
     const isNonCDFAForCD = document.getElementById('catCD').checked;
     const isNonCDFAForAll = document.getElementById('allCats').checked;
-    const cats = ['A', 'B', 'C', 'D'];
-    let cat1Results = {}, lnavResults = {}, circlingResults = {};
 
-    cats.forEach(cat => {
-        const isNonCDFAForCat = isNonCDFAForAll ||
-            (cat === 'A' || cat === 'B' ? isNonCDFAForAB : isNonCDFAForCD);
-        // CAT 1
-        const cat1DH = parseFloat(document.getElementById(`cat1_${cat.toLowerCase()}_dh`).value) || 0;
-        const cat1DA = parseFloat(document.getElementById(`cat1_${cat.toLowerCase()}_da`).value) || 0;
-        const cat1RVR = parseFloat(document.getElementById(`cat1_${cat.toLowerCase()}_rvr`).value) || 0;
-        if (cat1DH || cat1DA) {
-            const cat1Result = calculateCAT1(cat, cat1DH, cat1DA, cat1RVR, thrElev, lightType, isProcCDFA, isNonCDFAForCat);
-            document.getElementById(`cat1_${cat.toLowerCase()}_result`).innerHTML = 
-                `DA: ${cat1Result.da}<br>RVR: ${cat1Result.rvr}`;
-            cat1Results[cat] = `DA: ${cat1Result.da}, RVR: ${cat1Result.rvr}`;
-        } else { cat1Results[cat] = ""; document.getElementById(`cat1_${cat.toLowerCase()}_result`).innerHTML = ""; }
+    let summary = {};
 
-        // LNAV/VNAV
-        const lnavDH = parseFloat(document.getElementById(`lnav_${cat.toLowerCase()}_dh`).value) || 0;
-        const lnavDA = parseFloat(document.getElementById(`lnav_${cat.toLowerCase()}_da`).value) || 0;
-        const lnavRVR = parseFloat(document.getElementById(`lnav_${cat.toLowerCase()}_rvr`).value) || 0;
-        if (lnavDH || lnavDA) {
-            const lnavResult = calculateLNAVVNAV(cat, lnavDH, lnavDA, lnavRVR, thrElev, lightType, isProcCDFA, isNonCDFAForCat);
-            document.getElementById(`lnav_${cat.toLowerCase()}_result`).innerHTML = 
-                `DA: ${lnavResult.da}<br>RVR: ${lnavResult.rvr}`;
-            lnavResults[cat] = `DA: ${lnavResult.da}, RVR: ${lnavResult.rvr}`;
-        } else { lnavResults[cat] = ""; document.getElementById(`lnav_${cat.toLowerCase()}_result`).innerHTML = ""; }
+    // ----- Precision Procedures -----
+    PRECISION_PROC.forEach(proc=>{
+        if(!document.getElementById('show_'+proc.code).checked) return;
+        summary[proc.code] = {};
+        CATS.forEach(cat=>{
+            const da = parseFloat(document.getElementById(`${proc.code}_${cat}_da`).value)||0;
+            const dh = parseFloat(document.getElementById(`${proc.code}_${cat}_dh`).value)||0;
+            const rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`).value)||0;
 
-        // Circling
-        const circMDH = parseFloat(document.getElementById(`circ_${cat.toLowerCase()}_mdh`).value) || 0;
-        const circMDA = parseFloat(document.getElementById(`circ_${cat.toLowerCase()}_mda`).value) || 0;
-        const circVIS = parseFloat(document.getElementById(`circ_${cat.toLowerCase()}_vis`).value) || 0;
-        if (circMDH || circMDA) {
-            const circResult = calculateCircling(cat, circMDH, circMDA, circVIS, adElev);
-            document.getElementById(`circ_${cat.toLowerCase()}_result`).innerHTML = 
-                `MDA: ${circResult.mda}<br>VIS: ${circResult.vis}`;
-            circlingResults[cat] = `MDA: ${circResult.mda}, VIS: ${circResult.vis}`;
-        } else { circlingResults[cat] = ""; document.getElementById(`circ_${cat.toLowerCase()}_result`).innerHTML = ""; }
+            // Logic (same for all precision procs)
+            const dhRaised = Math.max(dh,200);
+            const daCalc = thrElev + dhRaised;
+            const daFinal = Math.max(da, daCalc);
+            const rvrTable = getRVRFromTable(dhRaised,lightType);
+            let rvrFinal = Math.max(rvr,rvrTable);
+
+            // Special RVR cap logic for CDFA if proc is CAT 1/LNAVVNAV/RNP/etc (not Circling/Non-Precision)
+            let isNonCDFAForCat = isNonCDFAForAll || (["A","B"].includes(cat) ? isNonCDFAForAB : isNonCDFAForCD);
+            if (isProcCDFA && !isNonCDFAForCat) {
+                const maxRVR = ['A','B'].includes(cat)?1500:2400;
+                if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
+            }
+
+            // Show result
+            const res = `DA: ${daFinal}(${dhRaised}), RVR: ${rvrFinal}m`;
+            document.getElementById(`${proc.code}_${cat}_result`).innerText = da||dh||rvr ? res : '';
+            summary[proc.code][cat] = da||dh||rvr ? res : '';
+        });
     });
-    updateSummaryResults({cat1: cat1Results, lnav: lnavResults, circling: circlingResults});
+
+    // ----- Non-Precision Procedures: 250, 300, 350 minima -----
+    [...NONPRECISION_PROC_250, ...NONPRECISION_PROC_300, ...NONPRECISION_PROC_350].forEach(proc=>{
+        if(!document.getElementById('show_'+proc.code).checked) return;
+        summary[proc.code] = {};
+        let minMDH = 250;
+        if(NONPRECISION_PROC_300.some(p=>p.code===proc.code)) minMDH=300;
+        if(NONPRECISION_PROC_350.some(p=>p.code===proc.code)) minMDH=350;
+        CATS.forEach(cat=>{
+            const mda = parseFloat(document.getElementById(`${proc.code}_${cat}_mda`).value)||0;
+            const mdh = parseFloat(document.getElementById(`${proc.code}_${cat}_mdh`).value)||0;
+            const rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`).value)||0;
+
+            let mdhUsed = mdh;
+            let calcMDA = mda;
+            if(mdh>0 && mdh<minMDH) {
+                mdhUsed = minMDH;
+                calcMDA = roundUpTo10(thrElev + mdhUsed);
+                if(mda>calcMDA) calcMDA = mda;
+            } else if(mdh>=minMDH) {
+                calcMDA = mda;
+            }
+            // RVR from Table always, using MDH used in result
+            const rvrTable = getRVRFromTable(mdhUsed||minMDH, lightType);
+            const rvrFinal = Math.max(rvr||0, rvrTable);
+
+            const res = `MDA: ${calcMDA}(${mdhUsed}), RVR: ${rvrFinal}m`;
+            document.getElementById(`${proc.code}_${cat}_result`).innerText = mda||mdh||rvr?res:"";
+            summary[proc.code][cat] = mda||mdh||rvr?res:"";
+        });
+    });
+
+    // ----- Circling -----
+    if(document.getElementById('show_circling').checked) {
+        summary.circling = {};
+        const catMins = {A:400,B:500,C:600,D:700};
+        const visDefaults = {A:1.5,B:1.6,C:2.4,D:3.6};
+        CATS.forEach(cat=>{
+            const mda = parseFloat(document.getElementById(`circling_${cat}_mda`).value)||0;
+            const mdh = parseFloat(document.getElementById(`circling_${cat}_mdh`).value)||0;
+            const vis = parseFloat(document.getElementById(`circling_${cat}_vis`).value)||0;
+            const mdhUsed = Math.max(mdh,catMins[cat]);
+            const mdaCalc = roundUpTo10(adElev+mdhUsed);
+            const mdaFinal = Math.max(mda,mdaCalc);
+            const visFinal = Math.max(vis||0, visDefaults[cat]);
+            const res = `MDA: ${mdaFinal}(${mdhUsed}), VIS: ${visFinal}km`;
+            document.getElementById(`circling_${cat}_result`).innerText = mda||mdh||vis?res:"";
+            summary.circling[cat] = mda||mdh||vis?res:"";
+        });
+    }
+    updateSummaryResults(summary);
 }
 
-document.addEventListener('input', function(e) {
-    if (e.target.type === 'number') calculate();
-});
-document.addEventListener('change', function(e) {
-    if (e.target.type === 'radio' || e.target.type === 'checkbox' || e.target.type === 'select-one') calculate();
-});
-document.getElementById('noncdfa').addEventListener('change', function() {
-    document.getElementById('nonCdfaOptions').style.display = this.checked ? 'block' : 'none';
-});
-document.getElementById('cdfa').addEventListener('change', function() {
-    document.getElementById('nonCdfaOptions').style.display = this.checked ? 'none' : 'block';
-});
-document.getElementById('showCat1').addEventListener('change', function() {
-    document.getElementById('cat1Calculator').style.display = this.checked ? 'block' : 'none';
-});
-document.getElementById('showLnavVnav').addEventListener('change', function() {
-    document.getElementById('lnavVnavCalculator').style.display = this.checked ? 'block' : 'none';
-});
-document.getElementById('showCircling').addEventListener('change', function() {
-    document.getElementById('circlingCalculator').style.display = this.checked ? 'block' : 'none';
+
+function updateSummaryResults(results) {
+    // Only include ticked procedures (in order)
+    const blocks = [
+        ...PRECISION_PROC,
+        ...NONPRECISION_PROC_250,
+        ...NONPRECISION_PROC_300,
+        ...NONPRECISION_PROC_350,
+        ...CIRCLING_PROC
+    ].filter(proc =>
+        document.getElementById('show_'+proc.code)?.checked
+    );
+    let html = `<h2>Summary of Results</h2>`;
+    blocks.forEach(proc=>{
+        if(!results[proc.code])return;
+        html += `<div style="margin-bottom:14px;"><h3>${proc.name}</h3>`;
+        CATS.forEach(cat=>{
+            if(results[proc.code][cat]) html += `<div>CAT ${cat}: ${results[proc.code][cat]}</div>`;
+        });
+        html += `</div>`;
+    });
+    document.getElementById('summaryResults').innerHTML = html;
+}
+
+// Live recalc
+document.addEventListener('input',function(e){ if(e.target.type==='number') calculate(); });
+document.addEventListener('change',function(e){
+    if(['radio','checkbox','select-one'].includes(e.target.type)) {
+      updateCalculatorVisibility();
+      calculate();
+    }
 });
