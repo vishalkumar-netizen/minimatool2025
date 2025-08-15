@@ -1,36 +1,19 @@
 // === Define Procedures ===
-
-// Precision—with CDFA/NonCDFA rules
 const PRECISION_PROC = [
-    { code: 'cat1', name: 'CAT 1' },
-    { code: 'rnp', name: 'RNP' },
-    { code: 'gls', name: 'GLS' },
-    { code: 'par', name: 'PAR' },
-    { code: 'lpv', name: 'LPV' },
-    { code: 'lnavvnav', name: 'LNAV/VNAV' }
+    { code: 'cat1', name: 'CAT 1' }, { code: 'rnp', name: 'RNP' }, { code: 'gls', name: 'GLS' },
+    { code: 'par', name: 'PAR' }, { code: 'lpv', name: 'LPV' }, { code: 'lnavvnav', name: 'LNAV/VNAV' }
 ];
-// Non-precision, MDH min 250
 const NONPRECISION_PROC_250 = [
-    { code: 'loc', name: 'LOC' },
-    { code: 'locdme', name: 'LOC+DME' },
-    { code: 'vordme', name: 'VOR+DME' },
-    { code: 'lnav', name: 'LNAV' },
-    { code: 'sra', name: 'SRA' },
-    { code: 'lda', name: 'LDA' }
+    { code: 'loc', name: 'LOC' }, { code: 'locdme', name: 'LOC+DME' }, { code: 'vordme', name: 'VOR+DME' },
+    { code: 'lnav', name: 'LNAV' }, { code: 'sra', name: 'SRA' }, { code: 'lda', name: 'LDA' }
 ];
-// Non-precision, MDH min 300
 const NONPRECISION_PROC_300 = [
-    { code: 'vor', name: 'VOR' },
-    { code: 'ndbdme', name: 'NDB+DME' }
+    { code: 'vor', name: 'VOR' }, { code: 'ndbdme', name: 'NDB+DME' }
 ];
-// Non-precision, MDH min 350
-const NONPRECISION_PROC_350 = [
-    { code: 'ndb', name: 'NDB' }
-];
-// Circling
+const NONPRECISION_PROC_350 = [ { code: 'ndb', name: 'NDB' } ];
 const CIRCLING_PROC = [{ code: 'circling', name: 'Circling' }];
+const CATS = ['A','B','C','D'];
 
-// --------- RVR Table Range (FILL OUT with full table!) --------
 const RVR_TABLE_RANGES = [
     {low: 200, high: 210, FALS: 550, IALS: 750, BALS: 1000, NALS: 1200},
     {low: 211, high: 220, FALS: 550, IALS: 800, BALS: 1000, NALS: 1200},
@@ -72,8 +55,6 @@ const RVR_TABLE_RANGES = [
     {low: 1101, high: 1200, FALS: 4600, IALS: 4900, BALS: 5000, NALS: 5000},
     {low: 1201, high: 9999, FALS: 5000, IALS: 5000, BALS: 5000, NALS: 5000}
 ];
-
-// ----------- Helper: RVR from Table (range lookup) -----------
 function getRVRFromTable(dh, lightType) {
     for (let row of RVR_TABLE_RANGES) {
         if (dh >= row.low && dh <= row.high) return row[lightType];
@@ -82,9 +63,7 @@ function getRVRFromTable(dh, lightType) {
 }
 function roundUpTo10(x) { return Math.ceil(x/10)*10; }
 
-// ----------- Dynamic UI Rendering -----------
-const CATS = ['A','B','C','D'];
-
+// --- UI Render ---
 function renderProcedureCheckboxes() {
     let html = "";
     PRECISION_PROC.forEach(p=>{ html += `<label><input type="checkbox" id="show_${p.code}" checked> ${p.name}</label>`; });
@@ -95,7 +74,6 @@ function renderProcedureCheckboxes() {
     document.getElementById('procedureCheckboxes').innerHTML = html;
 }
 renderProcedureCheckboxes();
-
 function renderCalculators() {
     let html = "";
     const catRows = (proc, inputTypes) => CATS.map(cat=>{
@@ -148,23 +126,45 @@ function updateCalculatorVisibility() {
 document.getElementById('procedureCheckboxes').addEventListener('change', updateCalculatorVisibility);
 updateCalculatorVisibility();
 
-// --- CDFA radio/check logic as before
-document.getElementById('noncdfa').addEventListener('change',function(){document.getElementById('nonCdfaOptions').style.display = this.checked ? 'block' : 'none';});
-document.getElementById('cdfa').addEventListener('change',function(){document.getElementById('nonCdfaOptions').style.display = this.checked ? 'none' : 'block';});
+document.getElementById('noncdfa').addEventListener('change',function(){
+    const s = document.getElementById('noncdfa').checked;
+    document.getElementById('noncdfaSubGroup').style.display = s ? 'flex':'none';
+});
+document.getElementById('cdfa').addEventListener('change',function(){
+    document.getElementById('noncdfaSubGroup').style.display = 'none';
+    document.getElementById('noncdfa_ab').checked = false;
+    document.getElementById('noncdfa_cd').checked = false;
+});
 
-// --- MAIN CALCULATION ENGINES ---
+// --- CORE LOGIC ---
 function calculate() {
     const adElev = parseFloat(document.getElementById('adElev').value)||0;
     const thrElev = parseFloat(document.getElementById('thrElev').value)||0;
     const lightType = document.getElementById('lightType').value;
+
+    // --- CDFA/Non-CDFA conditions ---
     const isProcCDFA = document.getElementById('cdfa').checked;
-    const isNonCDFAForAB = document.getElementById('catAB').checked;
-    const isNonCDFAForCD = document.getElementById('catCD').checked;
-    const isNonCDFAForAll = document.getElementById('allCats').checked;
+    const isNonCDFA = document.getElementById('noncdfa').checked;
+    const isNonCDFA_AB = document.getElementById('noncdfa_ab').checked;
+    const isNonCDFA_CD = document.getElementById('noncdfa_cd').checked;
+
+    // Helper: Per CAT Non-CDFA condition
+    function isNonCDFAForCat(cat){
+        // If NON CDFA is not selected, return false (all CDFA)
+        if(!isNonCDFA) return false;
+        // If neither sub-box is ticked, all CATs are Non-CDFA
+        if(!isNonCDFA_AB && !isNonCDFA_CD) return true;
+        // If both are ticked, all CATs are Non-CDFA
+        if(isNonCDFA_AB && isNonCDFA_CD) return true;
+        // If only one, only those CATs are Non-CDFA
+        if(isNonCDFA_AB && ['A','B'].includes(cat)) return true;
+        if(isNonCDFA_CD && ['C','D'].includes(cat)) return true;
+        // Rest are CDFA
+        return false;
+    }
 
     let summary = {};
-
-    // ----- Precision Procedures -----
+    // PRECISION
     PRECISION_PROC.forEach(proc=>{
         if(!document.getElementById('show_'+proc.code).checked) return;
         summary[proc.code] = {};
@@ -176,10 +176,9 @@ function calculate() {
             const daCalc = thrElev + dhRaised;
             const daFinal = Math.max(da, daCalc);
             const rvrTable = getRVRFromTable(dhRaised,lightType);
-            let rvrFinal = Math.max(rvr,rvrTable);
-            let isNonCDFAForCat = isNonCDFAForAll || (["A","B"].includes(cat) ? isNonCDFAForAB : isNonCDFAForCD);
-            // CDFA cap as now applies to ALL except Circling
-            if (isProcCDFA && !isNonCDFAForCat) {
+            let rvrFinal = Math.max(rvr, rvrTable);
+            // Apply CDFA RVR caps unless this CAT is Non CDFA per user input
+            if(!isNonCDFAForCat(cat)) {
                 const maxRVR = ['A','B'].includes(cat)?1500:2400;
                 if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
             }
@@ -188,8 +187,7 @@ function calculate() {
             summary[proc.code][cat] = da||dh||rvr ? res : '';
         });
     });
-
-    // ----- Non-Precision Procedures: 250, 300, 350 minima -----
+    // NONPRECISION
     [...NONPRECISION_PROC_250, ...NONPRECISION_PROC_300, ...NONPRECISION_PROC_350].forEach(proc=>{
         if(!document.getElementById('show_'+proc.code).checked) return;
         summary[proc.code] = {};
@@ -209,12 +207,9 @@ function calculate() {
             } else if(mdh>=minMDH) {
                 calcMDA = mda;
             }
-            // RVR from Table always, using MDH used in result
             const rvrTable = getRVRFromTable(mdhUsed||minMDH, lightType);
             let rvrFinal = Math.max(rvr||0, rvrTable);
-            let isNonCDFAForCat = isNonCDFAForAll || (["A","B"].includes(cat) ? isNonCDFAForAB : isNonCDFAForCD);
-            // CDFA cap applies to these as well!
-            if (isProcCDFA && !isNonCDFAForCat) {
+            if(!isNonCDFAForCat(cat)) {
                 const maxRVR = ['A','B'].includes(cat)?1500:2400;
                 if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
             }
@@ -223,8 +218,7 @@ function calculate() {
             summary[proc.code][cat] = mda||mdh||rvr?res:"";
         });
     });
-
-    // ----- Circling -----
+    // CIRCLING
     if(document.getElementById('show_circling').checked) {
         summary.circling = {};
         const catMins = {A:400,B:500,C:600,D:700};
@@ -244,7 +238,6 @@ function calculate() {
     }
     updateSummaryResults(summary);
 }
-
 function updateSummaryResults(results) {
     const blocks = [
         ...PRECISION_PROC,
@@ -266,8 +259,6 @@ function updateSummaryResults(results) {
     });
     document.getElementById('summaryResults').innerHTML = html;
 }
-
-// Live recalc
 document.addEventListener('input',function(e){ if(e.target.type==='number') calculate(); });
 document.addEventListener('change',function(e){
     if(['radio','checkbox','select-one'].includes(e.target.type)) {
