@@ -14,6 +14,7 @@ const NONPRECISION_PROC_350 = [ { code: 'ndb', name: 'NDB' } ];
 const CIRCLING_PROC = [{ code: 'circling', name: 'Circling' }];
 const CATS = ['A','B','C','D'];
 
+// Fill this complete table according to your rulebook
 const RVR_TABLE_RANGES = [
     {low: 200, high: 210, FALS: 550, IALS: 750, BALS: 1000, NALS: 1200},
     {low: 211, high: 220, FALS: 550, IALS: 800, BALS: 1000, NALS: 1200},
@@ -55,6 +56,7 @@ const RVR_TABLE_RANGES = [
     {low: 1101, high: 1200, FALS: 4600, IALS: 4900, BALS: 5000, NALS: 5000},
     {low: 1201, high: 9999, FALS: 5000, IALS: 5000, BALS: 5000, NALS: 5000}
 ];
+
 function getRVRFromTable(dh, lightType) {
     for (let row of RVR_TABLE_RANGES) {
         if (dh >= row.low && dh <= row.high) return row[lightType];
@@ -150,21 +152,16 @@ function calculate() {
 
     // Helper: Per CAT Non-CDFA condition
     function isNonCDFAForCat(cat){
-        // If NON CDFA is not selected, return false (all CDFA)
-        if(!isNonCDFA) return false;
-        // If neither sub-box is ticked, all CATs are Non-CDFA
+        if(!isNonCDFA) return false; // all CDFA
         if(!isNonCDFA_AB && !isNonCDFA_CD) return true;
-        // If both are ticked, all CATs are Non-CDFA
         if(isNonCDFA_AB && isNonCDFA_CD) return true;
-        // If only one, only those CATs are Non-CDFA
         if(isNonCDFA_AB && ['A','B'].includes(cat)) return true;
         if(isNonCDFA_CD && ['C','D'].includes(cat)) return true;
-        // Rest are CDFA
         return false;
     }
 
     let summary = {};
-    // PRECISION
+    // --- PRECISION Approaches ---
     PRECISION_PROC.forEach(proc=>{
         if(!document.getElementById('show_'+proc.code).checked) return;
         summary[proc.code] = {};
@@ -176,8 +173,9 @@ function calculate() {
             const daCalc = thrElev + dhRaised;
             const daFinal = Math.max(da, daCalc);
             const rvrTable = getRVRFromTable(dhRaised,lightType);
-            let rvrFinal = Math.max(rvr, rvrTable);
-            // Apply CDFA RVR caps unless this CAT is Non CDFA per user input
+            // --- Minimum RVR rule for precision: never below table!
+            let rvrFinal = Math.max(rvrTable, rvr);
+            // Apply RVR cap if NOT NonCDFA
             if(!isNonCDFAForCat(cat)) {
                 const maxRVR = ['A','B'].includes(cat)?1500:2400;
                 if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
@@ -187,7 +185,7 @@ function calculate() {
             summary[proc.code][cat] = da||dh||rvr ? res : '';
         });
     });
-    // NONPRECISION
+    // --- NONPRECISION Approaches ---
     [...NONPRECISION_PROC_250, ...NONPRECISION_PROC_300, ...NONPRECISION_PROC_350].forEach(proc=>{
         if(!document.getElementById('show_'+proc.code).checked) return;
         summary[proc.code] = {};
@@ -208,17 +206,25 @@ function calculate() {
                 calcMDA = mda;
             }
             const rvrTable = getRVRFromTable(mdhUsed||minMDH, lightType);
-            let rvrFinal = Math.max(rvr||0, rvrTable);
-            if(!isNonCDFAForCat(cat)) {
+
+            // --- Minimum RVR rules for Non-Precision ---
+            let rvrFinal;
+            if(!isNonCDFAForCat(cat)) { // CDFA
+                rvrFinal = Math.max(750, rvrTable, rvr);
+                // RVR cap still applies!
                 const maxRVR = ['A','B'].includes(cat)?1500:2400;
                 if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
+            } else { // Non-CDFA for this CAT
+                let minRVR = ['A','B'].includes(cat)?1000:1200;
+                rvrFinal = Math.max(minRVR, rvrTable, rvr);
+                // NO cap for Non-CDFA
             }
             const res = `MDA: ${calcMDA}(${mdhUsed}), RVR: ${rvrFinal}m`;
             document.getElementById(`${proc.code}_${cat}_result`).innerText = mda||mdh||rvr?res:"";
             summary[proc.code][cat] = mda||mdh||rvr?res:"";
         });
     });
-    // CIRCLING
+    // --- CIRCLING (NO RVR minimum, logic unchanged) ---
     if(document.getElementById('show_circling').checked) {
         summary.circling = {};
         const catMins = {A:400,B:500,C:600,D:700};
@@ -262,7 +268,7 @@ function updateSummaryResults(results) {
 document.addEventListener('input',function(e){ if(e.target.type==='number') calculate(); });
 document.addEventListener('change',function(e){
     if(['radio','checkbox','select-one'].includes(e.target.type)) {
-      updateCalculatorVisibility();
-      calculate();
+        updateCalculatorVisibility();
+        calculate();
     }
 });
