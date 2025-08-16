@@ -303,4 +303,23 @@ function clearAllInputs() {
     // Optional: scroll to top, focus the first input, or reset selects if you want
     window.scrollTo(0,0);
 }
+// ---- Top-right Page Zoom Controls ----
+let zoomLevel = 1;
+const minZoom = 0.7;
+const maxZoom = 2;
+
+function zoomPage(direction) {
+    if(direction === '+') {
+        zoomLevel = Math.min(maxZoom, zoomLevel + 0.1);
+    } else if(direction === '-') {
+        zoomLevel = Math.max(minZoom, zoomLevel - 0.1);
+    }
+    document.body.style.zoom = zoomLevel;
+    document.getElementById('zoom-indicator').innerText = `Zoom: ${(zoomLevel*100).toFixed(0)}%`;
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+    document.body.style.zoom = zoomLevel;
+    document.getElementById('zoom-indicator').innerText = `Zoom: ${(zoomLevel*100).toFixed(0)}%`;
+});
 
