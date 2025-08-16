@@ -14,7 +14,7 @@ const NONPRECISION_PROC_350 = [{ code: 'ndb', name: 'NDB' }];
 const CIRCLING_PROC = [{ code: 'circling', name: 'Circling' }];
 const CATS = ['A','B','C','D'];
 
-// Fill this complete table according to your rulebook
+// Fill in all RVR ranges from your full table here!
 const RVR_TABLE_RANGES = [
     {low: 200, high: 210, FALS: 550, IALS: 750, BALS: 1000, NALS: 1200},
     {low: 211, high: 220, FALS: 550, IALS: 800, BALS: 1000, NALS: 1200},
@@ -56,7 +56,6 @@ const RVR_TABLE_RANGES = [
     {low: 1101, high: 1200, FALS: 4600, IALS: 4900, BALS: 5000, NALS: 5000},
     {low: 1201, high: 9999, FALS: 5000, IALS: 5000, BALS: 5000, NALS: 5000}
 ];
-
 function getRVRFromTable(dh, lightType) {
     for (let row of RVR_TABLE_RANGES) {
         if (dh >= row.low && dh <= row.high) return row[lightType];
@@ -65,7 +64,7 @@ function getRVRFromTable(dh, lightType) {
 }
 function roundUpTo10(x) { return Math.ceil(x/10)*10; }
 
-// --- UI Render ---
+// --- UI Generation
 function renderProcedureCheckboxes() {
     let html = "";
     PRECISION_PROC.forEach(p=>{ html += `<label><input type="checkbox" id="show_${p.code}" checked> ${p.name}</label>`; });
@@ -138,7 +137,7 @@ document.getElementById('cdfa').addEventListener('change',function(){
     document.getElementById('noncdfa_cd').checked = false;
 });
 
-// --- CORE LOGIC ---
+// --- MAIN LOGIC incl. ALL FEATURE/EXCEPTION RULES ---
 function calculate() {
     const adElev = parseFloat(document.getElementById('adElev').value)||0;
     const thrElev = parseFloat(document.getElementById('thrElev').value)||0;
@@ -160,7 +159,7 @@ function calculate() {
     }
 
     let summary = {};
-    // --- PRECISION Approaches ---
+    // --- PRECISION Approaches (incl. special LNAV/VNAV logic) ---
     PRECISION_PROC.forEach(proc=>{
         if(!document.getElementById('show_'+proc.code).checked) return;
         summary[proc.code] = {};
@@ -168,11 +167,12 @@ function calculate() {
             const da = parseFloat(document.getElementById(`${proc.code}_${cat}_da`).value)||0;
             const dh = parseFloat(document.getElementById(`${proc.code}_${cat}_dh`).value)||0;
             const rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`).value)||0;
-            const dhRaised = Math.max(dh,200);
+            // --- For LNAV/VNAV, min DH is 250, else 200
+            const dhRaised = (proc.code === "lnavvnav") ? Math.max(dh, 250) : Math.max(dh, 200);
             const daCalc = thrElev + dhRaised;
             const daFinal = Math.max(da, daCalc);
             const rvrTable = getRVRFromTable(dhRaised,lightType);
-            let rvrFinal = Math.max(rvrTable, rvr);
+            let rvrFinal = Math.max(rvrTable, rvr); // Table is real minimum for precision
             if(!isNonCDFAForCat(cat)) {
                 const maxRVR = ['A','B'].includes(cat)?1500:2400;
                 if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
@@ -182,7 +182,7 @@ function calculate() {
             summary[proc.code][cat] = da||dh||rvr ? res : '';
         });
     });
-    // --- NONPRECISION Approaches ---
+    // --- NONPRECISION Approaches (incl. >1200 MDH rule) ---
     [...NONPRECISION_PROC_250, ...NONPRECISION_PROC_300, ...NONPRECISION_PROC_350].forEach(proc=>{
         if(!document.getElementById('show_'+proc.code).checked) return;
         summary[proc.code] = {};
@@ -202,22 +202,21 @@ function calculate() {
             } else if(mdh>=minMDH) {
                 calcMDA = mda;
             }
-
-            // NEW RULE: If MDH > 1200, force Non-CDFA and RVR = 5000m
+            // --- New rule: If MDH > 1200 => always Non-CDFA, RVR = 5000m
             if(mdhUsed > 1200) {
                 document.getElementById(`${proc.code}_${cat}_result`).innerText = 
                   `MDA: ${calcMDA}(${mdhUsed}), RVR: 5000m (forced Non-CDFA: MDH > 1200)`;
                 summary[proc.code][cat] = `MDA: ${calcMDA}(${mdhUsed}), RVR: 5000m (forced Non-CDFA: MDH > 1200)`;
-                return; // skip all further RVR logic for this row
+                return; // skip further RVR processing for this row
             }
 
             const rvrTable = getRVRFromTable(mdhUsed||minMDH, lightType);
             let rvrFinal;
-            if(!isNonCDFAForCat(cat)) { // CDFA
+            if(!isNonCDFAForCat(cat)) { // CDFA min 750, regular cap
                 rvrFinal = Math.max(750, rvrTable, rvr);
                 const maxRVR = ['A','B'].includes(cat)?1500:2400;
                 if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
-            } else { // Non-CDFA for this CAT
+            } else { // Non-CDFA min 1000/1200
                 let minRVR = ['A','B'].includes(cat)?1000:1200;
                 rvrFinal = Math.max(minRVR, rvrTable, rvr);
             }
@@ -226,7 +225,7 @@ function calculate() {
             summary[proc.code][cat] = mda||mdh||rvr?res:"";
         });
     });
-    // --- CIRCLING (NO RVR minimum, logic unchanged) ---
+    // --- CIRCLING (unchanged, no RVR logic)
     if(document.getElementById('show_circling').checked) {
         summary.circling = {};
         const catMins = {A:400,B:500,C:600,D:700};
