@@ -322,4 +322,95 @@ window.addEventListener('DOMContentLoaded',()=>{
     document.body.style.zoom = zoomLevel;
     document.getElementById('zoom-indicator').innerText = `Zoom: ${(zoomLevel*100).toFixed(0)}%`;
 });
+function updateSummaryResults(results) {
+    let anyState = false;
+    const blocks = [
+        ...PRECISION_PROC,
+        ...NONPRECISION_PROC_250,
+        ...NONPRECISION_PROC_300,
+        ...NONPRECISION_PROC_350,
+        ...CIRCLING_PROC
+    ].filter(proc => document.getElementById('show_'+proc.code)?.checked);
+    function isStateValue(proc, cat, value) {
+        let regulatoryMin = null;
+        if (PRECISION_PROC.some(p=>p.code===proc)) {
+            let dhRaised;
+            if(proc === "lnavvnav") {
+                const dh = parseFloat(document.getElementById(`${proc}_${cat}_dh`).value)||0;
+                dhRaised = Math.max(dh, 250);
+            } else {
+                const dh = parseFloat(document.getElementById(`${proc}_${cat}_dh`).value)||0;
+                dhRaised = Math.max(dh, 200);
+            }
+            regulatoryMin = getRVRFromTable(dhRaised, document.getElementById('lightType').value);
+        } else if (CIRCLING_PROC.some(p=>p.code===proc)) {
+            regulatoryMin = {A:1.5,B:1.6,C:2.4,D:3.6}[cat];
+        } else {
+            let mdh = parseFloat(document.getElementById(`${proc}_${cat}_mdh`).value)||0;
+            let minMDH = 250;
+            if(NONPRECISION_PROC_300.some(p=>p.code===proc)) minMDH=300;
+            if(NONPRECISION_PROC_350.some(p=>p.code===proc)) minMDH=350;
+            let mdhUsed = mdh > 0 ? Math.max(mdh, minMDH) : minMDH;
+            if(mdhUsed > 1200) return value >= 5000;
+            const isProcCDFA = document.getElementById('cdfa').checked;
+            const isNonCDFA = document.getElementById('noncdfa').checked;
+            const isNonCDFA_AB = document.getElementById('noncdfa_ab').checked;
+            const isNonCDFA_CD = document.getElementById('noncdfa_cd').checked;
+            function isNonCDFAForCat(cat){
+                if(!isNonCDFA) return false;
+                if(!isNonCDFA_AB && !isNonCDFA_CD) return true;
+                if(isNonCDFA_AB && isNonCDFA_CD) return true;
+                if(isNonCDFA_AB && ['A','B'].includes(cat)) return true;
+                if(isNonCDFA_CD && ['C','D'].includes(cat)) return true;
+                return false;
+            }
+            const rvrTable = getRVRFromTable(mdhUsed, document.getElementById('lightType').value);
+            if(!isNonCDFAForCat(cat)) {
+                regulatoryMin = Math.max(750, rvrTable);
+            } else {
+                regulatoryMin = Math.max(['A','B'].includes(cat)?1000:1200, rvrTable);
+            }
+        }
+        let userVal = null;
+        if (CIRCLING_PROC.some(p=>p.code===proc)) {
+            userVal = parseFloat(document.getElementById(`${proc}_${cat}_vis`).value)||null;
+        } else {
+            userVal = parseFloat(document.getElementById(`${proc}_${cat}_rvr`).value)||null;
+        }
+        if(userVal == null || userVal === 0) return false;
+        return userVal > regulatoryMin;
+    }
+    let html = `<div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;">`;
+    html += `<span class="state-indicator state-standard" id="summaryStandardBox">STANDARD</span>`;
+    html += `<span class="state-indicator" id="summaryStateBox">STATE</span>`;
+    html += `</div>`;
+    html += `<h2>Summary of Results</h2>`;
+    blocks.forEach(proc=>{
+        if(!results[proc.code])return;
+        html += `<div style="margin-bottom:14px;"><h3>${proc.name}</h3>`;
+        CATS.forEach(cat=>{
+            const resultText = results[proc.code][cat] || '';
+            let highlight = '';
+            let stateByInput = false;
+            if(resultText) {
+                let m = /RVR:\s*(\d+(?:\.\d+)?)m/i.exec(resultText);
+                if(!m) m = /VIS:\s*(\d+(?:\.\d+)?)/i.exec(resultText);
+                if(m) {
+                    let num = parseFloat(m[1]);
+                    if(isStateValue(proc.code,cat,num)) {
+                        highlight = "color:#be2222;font-weight:bold;";
+                        anyState = true;
+                        stateByInput = true;
+                    }
+                }
+            }
+            html += `<div>CAT ${cat}: <span style="${highlight}">${resultText}</span></div>`;
+        });
+        html += `</div>`;
+    });
+    document.getElementById('summaryResults').innerHTML = html;
+    document.getElementById('summaryStandardBox').className = 'state-indicator'+(anyState?'':' state-standard');
+    document.getElementById('summaryStateBox').className = 'state-indicator'+(anyState?' state-state':'');
+}
+
 
