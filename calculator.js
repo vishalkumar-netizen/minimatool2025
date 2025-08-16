@@ -10,7 +10,7 @@ const NONPRECISION_PROC_250 = [
 const NONPRECISION_PROC_300 = [
     { code: 'vor', name: 'VOR' }, { code: 'ndbdme', name: 'NDB+DME' }
 ];
-const NONPRECISION_PROC_350 = [ { code: 'ndb', name: 'NDB' } ];
+const NONPRECISION_PROC_350 = [{ code: 'ndb', name: 'NDB' }];
 const CIRCLING_PROC = [{ code: 'circling', name: 'Circling' }];
 const CATS = ['A','B','C','D'];
 
@@ -150,9 +150,8 @@ function calculate() {
     const isNonCDFA_AB = document.getElementById('noncdfa_ab').checked;
     const isNonCDFA_CD = document.getElementById('noncdfa_cd').checked;
 
-    // Helper: Per CAT Non-CDFA condition
     function isNonCDFAForCat(cat){
-        if(!isNonCDFA) return false; // all CDFA
+        if(!isNonCDFA) return false;
         if(!isNonCDFA_AB && !isNonCDFA_CD) return true;
         if(isNonCDFA_AB && isNonCDFA_CD) return true;
         if(isNonCDFA_AB && ['A','B'].includes(cat)) return true;
@@ -173,9 +172,7 @@ function calculate() {
             const daCalc = thrElev + dhRaised;
             const daFinal = Math.max(da, daCalc);
             const rvrTable = getRVRFromTable(dhRaised,lightType);
-            // --- Minimum RVR rule for precision: never below table!
             let rvrFinal = Math.max(rvrTable, rvr);
-            // Apply RVR cap if NOT NonCDFA
             if(!isNonCDFAForCat(cat)) {
                 const maxRVR = ['A','B'].includes(cat)?1500:2400;
                 if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
@@ -205,19 +202,24 @@ function calculate() {
             } else if(mdh>=minMDH) {
                 calcMDA = mda;
             }
-            const rvrTable = getRVRFromTable(mdhUsed||minMDH, lightType);
 
-            // --- Minimum RVR rules for Non-Precision ---
+            // NEW RULE: If MDH > 1200, force Non-CDFA and RVR = 5000m
+            if(mdhUsed > 1200) {
+                document.getElementById(`${proc.code}_${cat}_result`).innerText = 
+                  `MDA: ${calcMDA}(${mdhUsed}), RVR: 5000m (forced Non-CDFA: MDH > 1200)`;
+                summary[proc.code][cat] = `MDA: ${calcMDA}(${mdhUsed}), RVR: 5000m (forced Non-CDFA: MDH > 1200)`;
+                return; // skip all further RVR logic for this row
+            }
+
+            const rvrTable = getRVRFromTable(mdhUsed||minMDH, lightType);
             let rvrFinal;
             if(!isNonCDFAForCat(cat)) { // CDFA
                 rvrFinal = Math.max(750, rvrTable, rvr);
-                // RVR cap still applies!
                 const maxRVR = ['A','B'].includes(cat)?1500:2400;
                 if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
             } else { // Non-CDFA for this CAT
                 let minRVR = ['A','B'].includes(cat)?1000:1200;
                 rvrFinal = Math.max(minRVR, rvrTable, rvr);
-                // NO cap for Non-CDFA
             }
             const res = `MDA: ${calcMDA}(${mdhUsed}), RVR: ${rvrFinal}m`;
             document.getElementById(`${proc.code}_${cat}_result`).innerText = mda||mdh||rvr?res:"";
