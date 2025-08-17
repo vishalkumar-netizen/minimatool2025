@@ -9,6 +9,7 @@
 This web tool calculates and displays required regulatory minima for aviation approaches and procedures, supporting all categories (CAT A/B/C/D), approach types (precision, non-precision, circling), and custom user input. It enables instant compliance checking, regulatory comparison, and operational documentation.
 
 ***
+Latest update (2025-08-17): Added the "Circling Raise for Procedure" feature, which dynamically adjusts circling minima when any procedure’s DH/MDH or RVR exceeds circling values for the same category. This results in additional raised circling summaries per procedure to ensure safer, compliant minima, improving user visibility and operational accuracy.
 
 ## **Features and Logic Implemented**
 
