@@ -557,63 +557,47 @@ window.addEventListener('DOMContentLoaded', function() {
     // Update the UI accordingly
     if (typeof updateCalculatorVisibility === 'function') updateCalculatorVisibility();
 });
-
 function isStateValue(procType, isCDFA, cat, value, tableMin, userInput, mdh) {
-    // procType: 'precision' or 'nonprecision' or 'circling'
-    // isCDFA: true/false
+    // procType: 'precision', 'nonprecision', or 'circling'
+    // isCDFA: boolean
     // cat: 'A','B','C','D'
-    // value: The calculated RVR or VIS to check
-    // tableMin: From table, if applicable (RVR for proc, VIS for circling)
-    // userInput: User's RVR/VIS input, or null/undefined if not given
-    // mdh: Only for non-precision, the procedure's MDH (in ft), or null
-
-    let minRVR, maxRVR, minVIS;
+    // value: calculated RVR or VIS
+    // tableMin: regulatory table minimum for RVR or VIS
+    // userInput: user input RVR or VIS or null/undefined if none
+    // mdh: procedure MDH in ft or null (only for nonprecision)
 
     if (procType === 'circling') {
-        // Circling logic (VIS in km)
         const circlingMinVIS = {A:1.5, B:1.6, C:2.4, D:3.6}[cat];
-        minVIS = userInput ? Math.max(circlingMinVIS, userInput) : circlingMinVIS;
-        return value > minVIS; // STATE if VIS exceeds circling/user minimum
+        const minVis = userInput ? Math.max(circlingMinVIS, userInput) : circlingMinVIS;
+        return value > minVis;
     }
 
     if (isCDFA) {
         if (procType === 'precision') {
-            // Use tableMin as regulatory min; CDFA max cap applies
-            maxRVR = (cat === 'A' || cat === 'B') ? 1500 : 2400;
-            // If user input is higher than cap, compare to that
-            let limit = userInput ? Math.max(tableMin, userInput) : tableMin;
-            let cap = Math.max(maxRVR, userInput || 0);
+            const maxRVR = (cat === 'A' || cat === 'B') ? 1500 : 2400;
+            const limit = userInput ? Math.max(tableMin, userInput) : tableMin;
+            const cap = Math.max(maxRVR, userInput || 0);
             return value > Math.max(limit, cap);
-        } else if (procType === 'nonprecision') {
-            // CDFA minimum always 750m, max as above
-            minRVR = 750;
-            maxRVR = (cat === 'A' || cat === 'B') ? 1500 : 2400;
-            let base = Math.max(tableMin, minRVR, userInput || 0);
-            let cap = Math.max(maxRVR, userInput || 0);
-            // Regulatory result cannot be below 750 or above cap
+        }
+        if (procType === 'nonprecision') {
+            const minRVR = 750;
+            const maxRVR = (cat === 'A' || cat === 'B') ? 1500 : 2400;
+            const base = Math.max(tableMin, minRVR, userInput || 0);
+            const cap = Math.max(maxRVR, userInput || 0);
             return value > Math.max(base, cap);
         }
     } else { // Non-CDFA
         if (procType === 'precision') {
-            // Use tableMin or user input, whichever higher
-            let regMin = Math.max(tableMin, userInput || 0);
+            const regMin = Math.max(tableMin, userInput || 0);
             return value > regMin;
-        } else if (procType === 'nonprecision') {
-            // MDH >1200 condition
-            if (mdh && mdh > 1200) {
-                minRVR = 5000;
-            } else {
-                minRVR = (cat === 'A' || cat === 'B') ? 1000 : 1200;
-            }
-            let regMin = Math.max(tableMin, minRVR, userInput || 0);
+        }
+        if (procType === 'nonprecision') {
+            const minRVR = (mdh && mdh > 1200) ? 5000 : ((cat === 'A' || cat === 'B') ? 1000 : 1200);
+            const regMin = Math.max(tableMin, minRVR, userInput || 0);
             return value > regMin;
         }
     }
-    return false; // fallback
+    return false;
 }
-
-
-
-
 
 
