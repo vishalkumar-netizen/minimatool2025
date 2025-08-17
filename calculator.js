@@ -412,5 +412,152 @@ function updateSummaryResults(results) {
     document.getElementById('summaryStandardBox').className = 'state-indicator'+(anyState?'':' state-standard');
     document.getElementById('summaryStateBox').className = 'state-indicator'+(anyState?' state-state':'');
 }
+function updateSummaryResults(results) {
+    // ---- SUPPORT LOGIC FOR CIRC RAISING ----
+    function visFromRVR(rvr) {
+        return Math.round((rvr/100))/10; // 1000m = 1.0km, gives 1 decimal
+    }
+    function roundUpTo10(x) { return Math.ceil(x/10)*10; }
+
+    const blocks = [
+        ...PRECISION_PROC,
+        ...NONPRECISION_PROC_250,
+        ...NONPRECISION_PROC_300,
+        ...NONPRECISION_PROC_350
+    ].filter(proc => document.getElementById('show_'+proc.code)?.checked);
+    const CIRC = CIRCLING_PROC[0];
+    const CATS = ['A','B','C','D'];
+
+    // Gather original circling minima (as user-entered or default)
+    let origCirc = {}, adElev = parseFloat(document.getElementById('adElev').value)||0;
+    CATS.forEach(cat=>{
+        let mdh = parseFloat(document.getElementById(`circling_${cat}_mdh`).value) || 0;
+        let userVis = parseFloat(document.getElementById(`circling_${cat}_vis`).value) || null;
+        const minVis = {A:1.5,B:1.6,C:2.4,D:3.6}[cat];
+        const minMDH = {A:400,B:500,C:600,D:700}[cat];
+        mdh = Math.max(mdh, minMDH);
+        let vis = Math.max(userVis || 0, minVis);
+        origCirc[cat] = {
+            mdh,
+            mda: roundUpTo10(adElev+mdh),
+            vis: vis
+        };
+    });
+
+    // --- Circling raise evaluation ---
+    // Find which non-circling procedures (by CAT) require circling raising, and keep their higher minima
+    let raiseMap = {}; // e.g., { byProc: { LOC: {A: {mdh, mda, vis}, B: null, ...} }, byCat: ... }
+    let nonCircCount = blocks.length;
+    blocks.forEach(proc=>{
+        let procLabel = proc.name;
+        CATS.forEach(cat=>{
+            let isRaise = false;
+            // Get approach values for this proc/cat:
+            let mdhOrDh = null, rvr = null;
+            if(PRECISION_PROC.some(p=>p.code===proc.code)) {
+                // Precision
+                mdhOrDh = parseFloat(document.getElementById(`${proc.code}_${cat}_dh`).value)||0;
+                rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`).value)||0;
+            } else {
+                // Non-precision
+                mdhOrDh = parseFloat(document.getElementById(`${proc.code}_${cat}_mdh`).value)||0;
+                rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`).value)||0;
+            }
+            // Raise if DH/MDH > circling's MDH OR RVR (converted) > circling's VIS
+            if((mdhOrDh > origCirc[cat].mdh) || (rvr && visFromRVR(rvr) > origCirc[cat].vis)) {
+                // Compute new MDH and VIS per rule:
+                let raisedMDH = Math.max(origCirc[cat].mdh, mdhOrDh);
+                let raisedMDA = roundUpTo10(adElev + raisedMDH);
+                let raisedVIS = Math.max(origCirc[cat].vis, visFromRVR(rvr||0));
+                if(!raiseMap[procLabel]) raiseMap[procLabel] = {};
+                raiseMap[procLabel][cat] = {
+                    mdh: raisedMDH,
+                    mda: raisedMDA,
+                    vis: raisedVIS
+                };
+            }
+        });
+    });
+
+    // -------- Render summary --------
+    // Circling logic: if only 1 approach + circling, use raised circling directly if needed
+    let html = `<div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;">`;
+    html += `<span class="state-indicator state-standard" id="summaryStandardBox">STANDARD</span>`;
+    html += `<span class="state-indicator" id="summaryStateBox">STATE</span>`;
+    html += `</div>`;
+    html += `<h2>Summary of Results</h2>`;
+
+    // Original procedures' results
+    blocks.forEach(proc=>{
+        if(!results[proc.code])return;
+        html += `<div style="margin-bottom:14px;"><h3>${proc.name}</h3>`;
+        CATS.forEach(cat=>{
+            const resultText = results[proc.code][cat] || '';
+            html += `<div>CAT ${cat}: <span>${resultText}</span></div>`;
+        });
+        html += `</div>`;
+    });
+
+    // Circling output
+    const raiseProcLabels = Object.keys(raiseMap).filter(lab=>Object.values(raiseMap[lab]).some(Boolean));
+    if(nonCircCount === 1 && raiseProcLabels.length === 1) {
+        // Only one non-circling approach: Replace circling with raised result for each CAT if needed
+        const primaryProc = raiseProcLabels[0];
+        html += `<div style="margin-bottom:14px;"><h3>Circling (raised for ${primaryProc})</h3>`;
+        CATS.forEach(cat=>{
+            let row = raiseMap[primaryProc][cat];
+            if(row) {
+                html += `<div>CAT ${cat}: MDA: ${row.mda} (${row.mdh}), VIS: ${row.vis.toFixed(1)}km</div>`;
+            } else {
+                // Show original for CATs not requiring raise
+                let oc = origCirc[cat];
+                html += `<div>CAT ${cat}: MDA: ${oc.mda} (${oc.mdh}), VIS: ${oc.vis.toFixed(1)}km</div>`;
+            }
+        });
+        html += `</div>`;
+    } else {
+        // Print original circling:
+        html += `<div style="margin-bottom:14px;"><h3>Circling (Original)</h3>`;
+        CATS.forEach(cat=>{
+            let oc = origCirc[cat];
+            html += `<div>CAT ${cat}: MDA: ${oc.mda} (${oc.mdh}), VIS: ${oc.vis.toFixed(1)}km</div>`;
+        });
+        html += `</div>`;
+        // Print each raised circling (one per proc that triggers, only print CATs that require raise)
+        raiseProcLabels.forEach(procLabel=>{
+            html += `<div style="margin-bottom:14px;"><h3>Circling raise for ${procLabel}</h3>`;
+            CATS.forEach(cat=>{
+                const row = raiseMap[procLabel][cat];
+                if(row) {
+                    html += `<div>CAT ${cat}: MDA: ${row.mda} (${row.mdh}), VIS: ${row.vis.toFixed(1)}km</div>`;
+                }
+            });
+            html += `</div>`;
+        });
+    }
+
+    document.getElementById('summaryResults').innerHTML = html;
+    // If you use STATE/STANDARD logic, keep your previous calls for color as needed.
+}
+// ==== AUTOCHECK: Select Only Circling By Default ====
+window.addEventListener('DOMContentLoaded', function() {
+    // Uncheck all main procedure checkboxes (precision, non-precision)
+    [
+        ...PRECISION_PROC,
+        ...NONPRECISION_PROC_250,
+        ...NONPRECISION_PROC_300,
+        ...NONPRECISION_PROC_350
+    ].forEach(proc=>{
+        var el = document.getElementById('show_'+proc.code);
+        if(el) el.checked = false;
+    });
+    // Check only "Circling"
+    var circ = document.getElementById('show_circling');
+    if(circ) circ.checked = true;
+    // Update the UI accordingly
+    if (typeof updateCalculatorVisibility === 'function') updateCalculatorVisibility();
+});
+
+
 
 
