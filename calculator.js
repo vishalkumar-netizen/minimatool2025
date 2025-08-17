@@ -412,5 +412,22 @@ function updateSummaryResults(results) {
     document.getElementById('summaryStandardBox').className = 'state-indicator'+(anyState?'':' state-standard');
     document.getElementById('summaryStateBox').className = 'state-indicator'+(anyState?' state-state':'');
 }
-
+// ==== AUTOCHECK: Select Only Circling By Default ====
+window.addEventListener('DOMContentLoaded', function() {
+    // Uncheck all main procedure checkboxes (precision, non-precision)
+    [
+        ...PRECISION_PROC,
+        ...NONPRECISION_PROC_250,
+        ...NONPRECISION_PROC_300,
+        ...NONPRECISION_PROC_350
+    ].forEach(proc=>{
+        var el = document.getElementById('show_'+proc.code);
+        if(el) el.checked = false;
+    });
+    // Check only "Circling"
+    var circ = document.getElementById('show_circling');
+    if(circ) circ.checked = true;
+    // Update the UI accordingly
+    if (typeof updateCalculatorVisibility === 'function') updateCalculatorVisibility();
+});
 
