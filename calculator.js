@@ -430,3 +430,171 @@ window.addEventListener('DOMContentLoaded', function() {
     // Update the UI accordingly
     if (typeof updateCalculatorVisibility === 'function') updateCalculatorVisibility();
 });
+
+// Self-contained Circling Raise for Procedure implementation
+
+(function() {
+    const CATS = ['A', 'B', 'C', 'D'];
+
+    // Convert RVR meters to VIS km (rounded 1 decimal)
+    function visFromRVR(rvr) {
+        return rvr ? Math.round(rvr / 100) / 10 : 0;
+    }
+    // Round up to nearest 10
+    function roundUpTo10(x) {
+        return Math.ceil(x / 10) * 10;
+    }
+
+    // Main function to compute and update circling raise summary
+    function computeAndRenderCirclingRaise() {
+        const adElev = parseFloat(document.getElementById('adElev')?.value) || 0;
+
+        // Get all procedures selected by user: checkboxes starting with 'show_'
+        const procCheckboxes = Array.from(document.querySelectorAll('input[type=checkbox][id^=show_]'))
+            .filter(cb => cb.checked);
+
+        // Procedures list with code, name, and type inferred
+        const procedures = procCheckboxes.map(cb => {
+            const code = cb.id.replace('show_', '');
+            const nameEl = document.querySelector(`label[for=${cb.id}]`);
+            const name = nameEl ? nameEl.textContent.trim() : code;
+            // Infer type by code (adjust as needed)
+            const precisionCodes = ['CAT1', 'RNP', 'GLS', 'PAR', 'LPV', 'LNAVVNAV'];
+            const type = precisionCodes.includes(code.toUpperCase()) ? 'precision' : (code.toLowerCase() === 'circling' ? 'circling' : 'nonprecision');
+            return { code, name, type };
+        });
+
+        // Gather circling minima from inputs (mdh and vis)
+        const circlingData = {};
+        CATS.forEach(cat => {
+            const mdh = parseFloat(document.getElementById(`circling_${cat}_mdh`)?.value) || 0;
+            const vis = parseFloat(document.getElementById(`circling_${cat}_vis`)?.value) || 0;
+            circlingData[cat] = { mdh, vis };
+        });
+
+        // Gather results (DH/MDH and RVR) per proc and cat
+        const results = {};
+        procedures.forEach(proc => {
+            results[proc.code] = {};
+            CATS.forEach(cat => {
+                let dh = 0, mdh = 0, rvr = 0, mda = 0;
+                if (proc.type === 'precision') {
+                    dh = parseFloat(document.getElementById(`${proc.code}_${cat}_dh`)?.value) || 0;
+                    rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`)?.value) || 0;
+                    mda = parseFloat(document.getElementById(`${proc.code}_${cat}_mda`)?.value) || 0;
+                } else if (proc.type === 'nonprecision') {
+                    mdh = parseFloat(document.getElementById(`${proc.code}_${cat}_mdh`)?.value) || 0;
+                    rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`)?.value) || 0;
+                    mda = parseFloat(document.getElementById(`${proc.code}_${cat}_mda`)?.value) || 0;
+                }
+                results[proc.code][cat] = { dh, mdh, rvr, mda };
+            });
+        });
+
+        // Identify non-circling procedures
+        const nonCirclingProcs = procedures.filter(p => p.type !== 'circling');
+
+        // Compute raises per proc and cat where applicable
+        const raiseMap = {};
+        nonCirclingProcs.forEach(proc => {
+            const procLabel = proc.name;
+            CATS.forEach(cat => {
+                const circMin = circlingData[cat];
+                if (!circMin) return;
+
+                const res = results[proc.code][cat];
+                if (!res) return;
+
+                const procDHorMDH = proc.type === 'precision' ? res.dh : res.mdh;
+                const procRVR = res.rvr;
+
+                if (procDHorMDH > circMin.mdh || visFromRVR(procRVR) > circMin.vis) {
+                    const raisedMDH = Math.max(circMin.mdh, procDHorMDH);
+                    const raisedMDA = roundUpTo10(adElev + raisedMDH);
+                    const raisedVIS = Math.max(circMin.vis, visFromRVR(procRVR));
+
+                    if (!raiseMap[procLabel]) raiseMap[procLabel] = {};
+                    raiseMap[procLabel][cat] = {
+                        mdh: raisedMDH,
+                        mda: raisedMDA,
+                        vis: raisedVIS
+                    };
+                }
+            });
+        });
+
+        // Build summary HTML
+        let html = `<div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;">`;
+        html += `<span class="state-indicator state-standard" id="summaryStandardBox">STANDARD</span>`;
+        html += `<span class="state-indicator" id="summaryStateBox">STATE</span>`;
+        html += `</div>`;
+        html += `<h2>Summary of Results</h2>`;
+
+        // Show all procedures' results
+        procedures.forEach(proc => {
+            html += `<div style="margin-bottom:14px;"><h3>${proc.name}</h3>`;
+            CATS.forEach(cat => {
+                const r = results[proc.code][cat];
+                let text = '—';
+                if (r) {
+                    let mdaVal = r.mda || r.dh || r.mdh || '-';
+                    text = `MDA: ${mdaVal}`;
+                    if (r.rvr) {
+                        text += `, RVR: ${r.rvr}m`;
+                    }
+                }
+                html += `<div>CAT ${cat}: <span>${text}</span></div>`;
+            });
+            html += `</div>`;
+        });
+
+        // Find procedures with raises
+        const raiseProcLabels = Object.keys(raiseMap).filter(label =>
+            Object.values(raiseMap[label]).some(val => !!val)
+        );
+
+        if (nonCirclingProcs.length === 1 && raiseProcLabels.length === 1) {
+            // Only one non-circling proc: replace circling with raised
+            const primaryProc = raiseProcLabels[0];
+            html += `<div style="margin-bottom:14px;"><h3>Circling (raised for ${primaryProc})</h3>`;
+            CATS.forEach(cat => {
+                const row = raiseMap[primaryProc][cat];
+                if (row) {
+                    html += `<div>CAT ${cat}: MDA: ${row.mda} (${row.mdh}), VIS: ${row.vis.toFixed(1)}km</div>`;
+                } else {
+                    const c = circlingData[cat];
+                    if (c) html += `<div>CAT ${cat}: MDA: ${roundUpTo10(adElev + c.mdh)} (${c.mdh}), VIS: ${c.vis.toFixed(1)}km</div>`;
+                }
+            });
+            html += `</div>`;
+        } else {
+            // Print original circling
+            html += `<div style="margin-bottom:14px;"><h3>Circling (Original)</h3>`;
+            CATS.forEach(cat => {
+                const c = circlingData[cat];
+                if (c) html += `<div>CAT ${cat}: MDA: ${roundUpTo10(adElev + c.mdh)} (${c.mdh}), VIS: ${c.vis.toFixed(1)}km</div>`;
+            });
+            html += `</div>`;
+            // Print raised circling per proc
+            raiseProcLabels.forEach(procLabel => {
+                html += `<div style="margin-bottom:14px;"><h3>Circling raise for ${procLabel}</h3>`;
+                CATS.forEach(cat => {
+                    const row = raiseMap[procLabel][cat];
+                    if (row) {
+                        html += `<div>CAT ${cat}: MDA: ${row.mda} (${row.mdh}), VIS: ${row.vis.toFixed(1)}km</div>`;
+                    }
+                });
+                html += `</div>`;
+            });
+        }
+
+        const summaryEl = document.getElementById('summaryResults');
+        if (summaryEl) summaryEl.innerHTML = html;
+    }
+
+    // Run once on script load (or call this function from your calculation workflow)
+    computeAndRenderCirclingRaise();
+
+    // Optional: expose globally to call elsewhere if needed
+    window.applyCirclingRaiseAuto = computeAndRenderCirclingRaise;
+})();
