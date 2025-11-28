@@ -28,29 +28,11 @@
         #summaryResults h2 { text-align:center;margin-bottom:8px;}
         #summaryResults h3 { margin-bottom:0;}
         .footer { text-align: center; margin-top: 26px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px; }
-        /* Conversion Control */
-        .conversion-control { 
-            margin-bottom: 15px; 
-            padding: 10px; 
-            border: 1px solid #cceeff; 
-            background: #e6f7ff; 
-            border-radius: 6px; 
-            display: flex; 
-            align-items: center;
+        @media (max-width: 800px) {
+          .calculators { flex-direction: column; }
+          .top-inputs { flex-direction: column; align-items: flex-start; }
         }
-        .conversion-control label {
-            font-weight: bold;
-            color: #0056b3;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-        }
-        .conversion-control input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-        }
-
+        
         /* State Indicators Styles */
         .state-indicator {
           display: inline-block;
@@ -107,15 +89,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- NEW CONVERSION CONTROL CHECKBOX -->
-        <div class="conversion-control">
-            <label for="meterToFeetConversion">
-                <input type="checkbox" id="meterToFeetConversion">
-                Apply Meter to Feet Conversion Rule (DA, DH, MDA, MDH inputs interpreted as Meters)
-            </label>
-        </div>
-
         <div class="proc-checkbox-group" id="procedureCheckboxes"></div>
         <div class="calculators" id="calculatorsArea"></div>
         <button class="calculate-btn" onclick="calculate()">Calculate All</button>
@@ -227,19 +200,12 @@
             let html = "";
             const catRows = (proc, inputTypes) => CATS.map(cat=>{
                 let fields = '';
-                // Note: The conversion logic only affects the DH/DA/MDH/MDA values, not the RVR/VIS fields.
-                const daType = inputTypes.includes('DA') ? 'DA':'';
-                const mdaType = inputTypes.includes('MDA') ? 'MDA':'';
-                const dhType = inputTypes.includes('DH') ? 'DH':'';
-                const mdhType = inputTypes.includes('MDH') ? 'MDH':'';
-
-                if(daType) fields += `<input type="number" placeholder="DA" id="${proc}_${cat}_da">`;
-                if(mdaType) fields += `<input type="number" placeholder="MDA" id="${proc}_${cat}_mda">`;
-                if(dhType) fields += `<input type="number" placeholder="DH" id="${proc}_${cat}_dh">`;
-                if(mdhType) fields += `<input type="number" placeholder="MDH" id="${proc}_${cat}_mdh">`;
+                if(inputTypes.includes('DA'))   fields += `<input type="number" placeholder="DA" id="${proc}_${cat}_da">`;
+                if(inputTypes.includes('MDA'))  fields += `<input type="number" placeholder="MDA" id="${proc}_${cat}_mda">`;
+                if(inputTypes.includes('DH'))   fields += `<input type="number" placeholder="DH" id="${proc}_${cat}_dh">`;
+                if(inputTypes.includes('MDH'))  fields += `<input type="number" placeholder="MDH" id="${proc}_${cat}_mdh">`;
                 if(inputTypes.includes('RVR'))  fields += `<input type="number" placeholder="RVR" id="${proc}_${cat}_rvr">`;
                 if(inputTypes.includes('VIS'))  fields += `<input type="number" placeholder="VIS" id="${proc}_${cat}_vis" step="0.1">`;
-                
                 return `<div class="cat-row"><div class="cat-label">CAT ${cat}</div>${fields}<div class="result" id="${proc}_${cat}_result"></div></div>`;
             }).join('');
             PRECISION_PROC.forEach(proc=>{
@@ -298,7 +264,6 @@
             const adElev = parseFloat(document.getElementById('adElev').value)||0;
             const thrElev = parseFloat(document.getElementById('thrElev').value)||0;
             const lightType = document.getElementById('lightType').value;
-            const useMeterConversion = document.getElementById('meterToFeetConversion').checked;
 
             // --- CDFA/Non-CDFA conditions ---
             const isProcCDFA = document.getElementById('cdfa').checked;
@@ -317,16 +282,11 @@
 
             // --- HELPER: Meter to Feet Conversion Rule ---
             // Input value (Meters) * 3.28084, then Round Up to integer (Feet)
-            function toFeet(rawValue) {
-                if (!rawValue && rawValue !== 0) return 0; // handle NaN/null/undefined
-                if (rawValue === 0) return 0;
-                // Only convert if the checkbox is ticked
-                if (useMeterConversion) {
-                    // Rule: input value * 3.28084 then ROUNDUP(val, 0)
-                    return Math.ceil(rawValue * 3.28084);
-                }
-                // Otherwise, treat the raw value as feet
-                return rawValue;
+            function toFeet(meters) {
+                if (!meters && meters !== 0) return 0; // handle NaN/null/undefined
+                if (meters === 0) return 0;
+                // Rule: input value * 3.28084 then ROUNDUP(val, 0)
+                return Math.ceil(meters * 3.28084);
             }
 
             let summary = {};
@@ -335,11 +295,10 @@
                 if(!document.getElementById('show_'+proc.code).checked) return;
                 summary[proc.code] = {};
                 CATS.forEach(cat=>{
-                    // Grab raw input (Meters for DA/DH if checkbox is ticked)
+                    // Grab raw input (Meters for DA/DH)
                     const daRaw = parseFloat(document.getElementById(`${proc.code}_${cat}_da`).value)||0;
                     const dhRaw = parseFloat(document.getElementById(`${proc.code}_${cat}_dh`).value)||0;
-                    
-                    // Apply Conversion Rule (or return raw value if box unchecked)
+                    // Apply Conversion Rule
                     const da = toFeet(daRaw);
                     const dh = toFeet(dhRaw);
                     
@@ -352,13 +311,10 @@
                     const daFinal = Math.max(da, daCalc);
                     const rvrTable = getRVRFromTable(dhRaised,lightType);
                     let rvrFinal = Math.max(rvrTable, rvr); // Table is real minimum for precision
-                    
-                    // Apply RVR max limits if CDFA
                     if(!isNonCDFAForCat(cat)) {
                         const maxRVR = ['A','B'].includes(cat)?1500:2400;
                         if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
                     }
-                    
                     const res = `DA: ${daFinal}(${dhRaised}), RVR: ${rvrFinal}m`;
                     // Check if any raw input exists to display result
                     document.getElementById(`${proc.code}_${cat}_result`).innerText = daRaw||dhRaw||rvr ? res : '';
@@ -373,11 +329,10 @@
                 if(NONPRECISION_PROC_300.some(p=>p.code===proc.code)) minMDH=300;
                 if(NONPRECISION_PROC_350.some(p=>p.code===proc.code)) minMDH=350;
                 CATS.forEach(cat=>{
-                    // Grab raw input (Meters for MDA/MDH if checkbox is ticked)
+                    // Grab raw input (Meters for MDA/MDH)
                     const mdaRaw = parseFloat(document.getElementById(`${proc.code}_${cat}_mda`).value)||0;
                     const mdhRaw = parseFloat(document.getElementById(`${proc.code}_${cat}_mdh`).value)||0;
-                    
-                    // Apply Conversion Rule (or return raw value if box unchecked)
+                    // Apply Conversion Rule
                     const mda = toFeet(mdaRaw);
                     const mdh = toFeet(mdhRaw);
 
@@ -385,27 +340,13 @@
                     
                     let mdhUsed = mdh;
                     let calcMDA = mda;
-                    
                     if(mdh>0 && mdh<minMDH) {
                         mdhUsed = minMDH;
                         calcMDA = roundUpTo10(thrElev + mdhUsed);
                         if(mda>calcMDA) calcMDA = mda;
                     } else if(mdh>=minMDH) {
-                        // MDH is >= minMDH, MDA value is taken as is unless it's lower than the calculated MDA based on MDH (unlikely if MDH is correct)
-                        // But for consistency:
                         calcMDA = mda;
-                    } else if (mdh === 0) {
-                        // If only MDA is provided, use it
-                        if (mda > 0) {
-                            calcMDA = mda;
-                            mdhUsed = mda - thrElev; // Calculate MDH from MDA for RVR table use
-                        } else {
-                            // If both are 0, use minMDH and calculate MDA
-                            mdhUsed = minMDH;
-                            calcMDA = roundUpTo10(thrElev + mdhUsed);
-                        }
                     }
-
                     // --- New rule: If MDH > 1200 => always Non-CDFA, RVR = 5000m
                     if(mdhUsed > 1200) {
                         document.getElementById(`${proc.code}_${cat}_result`).innerText = 
@@ -435,11 +376,10 @@
                 const catMins = {A:400,B:500,C:600,D:700};
                 const visDefaults = {A:1.5,B:1.6,C:2.4,D:3.6};
                 CATS.forEach(cat=>{
-                    // Grab raw input (Meters for MDA/MDH if checkbox is ticked)
+                    // Grab raw input (Meters for MDA/MDH)
                     const mdaRaw = parseFloat(document.getElementById(`circling_${cat}_mda`).value)||0;
                     const mdhRaw = parseFloat(document.getElementById(`circling_${cat}_mdh`).value)||0;
-                    
-                    // Apply Conversion Rule (or return raw value if box unchecked)
+                    // Apply Conversion Rule
                     const mda = toFeet(mdaRaw);
                     const mdh = toFeet(mdhRaw);
 
@@ -457,16 +397,13 @@
             updateSummaryResults(summary);
         }
         
-        document.addEventListener('input',function(e){ 
-            if(e.target.type==='number' || e.target.id === 'meterToFeetConversion') calculate(); 
-        });
+        document.addEventListener('input',function(e){ if(e.target.type==='number') calculate(); });
         document.addEventListener('change',function(e){
             if(['radio','checkbox','select-one'].includes(e.target.type)) {
                 updateCalculatorVisibility();
                 calculate();
             }
         });
-        
         function clearAllInputs() {
             // Clear all numbers and text
             document.querySelectorAll('input[type="number"], input[type="text"]').forEach(el => el.value = '');
@@ -482,10 +419,6 @@
             document.getElementById('noncdfaSubGroup').style.display = 'none';
             document.getElementById('noncdfa_ab').checked = false;
             document.getElementById('noncdfa_cd').checked = false;
-            
-            // Reset conversion checkbox (new addition)
-            document.getElementById('meterToFeetConversion').checked = false;
-
 
             // Set calculator checkboxes: default is all precision checked, circling checked, others unchecked
             [...PRECISION_PROC, ...CIRCLING_PROC].forEach(proc => {
@@ -519,22 +452,10 @@
         window.addEventListener('DOMContentLoaded',()=>{
             document.body.style.zoom = zoomLevel;
             document.getElementById('zoom-indicator').innerText = `Zoom: ${(zoomLevel*100).toFixed(0)}%`;
-            calculate(); // Run initial calculation on load
         });
         
         // Advanced Summary Results with State logic
         function updateSummaryResults(results) {
-            const useMeterConversion = document.getElementById('meterToFeetConversion').checked;
-            
-            // Helper function to get the actual feet value for comparison, taking conversion into account
-            function getFeetValueForCheck(rawValue, applyConversion) {
-                 if (!rawValue && rawValue !== 0) return 0;
-                 if (applyConversion) {
-                    return Math.ceil(rawValue * 3.28084);
-                 }
-                 return rawValue;
-            }
-
             let anyState = false;
             const blocks = [
                 ...PRECISION_PROC,
@@ -543,37 +464,32 @@
                 ...NONPRECISION_PROC_350,
                 ...CIRCLING_PROC
             ].filter(proc => document.getElementById('show_'+proc.code)?.checked);
-            
             function isStateValue(proc, cat, value) {
                 let regulatoryMin = null;
-
-                // Grab raw input (which is what the user would have entered)
-                const dhRaw = parseFloat(document.getElementById(`${proc}_${cat}_dh`)?.value)||0;
-                const mdhRaw = parseFloat(document.getElementById(`${proc}_${cat}_mdh`)?.value)||0;
-                const rvrVisRaw = parseFloat(document.getElementById(`${proc}_${cat}_rvr`)?.value)||parseFloat(document.getElementById(`${proc}_${cat}_vis`)?.value)||0;
-
-                // Determine if DA/DH/MDA/MDH was converted for this specific check
-                const dhCheck = getFeetValueForCheck(dhRaw, useMeterConversion);
-                const mdhCheck = getFeetValueForCheck(mdhRaw, useMeterConversion);
-                
                 if (PRECISION_PROC.some(p=>p.code===proc)) {
                     let dhRaised;
                     if(proc === "lnavvnav") {
-                        dhRaised = Math.max(dhCheck, 250);
+                        const dhRaw = parseFloat(document.getElementById(`${proc}_${cat}_dh`).value)||0;
+                        const dh = Math.ceil(dhRaw * 3.28084); // Re-apply conversion for correct logic check
+                        dhRaised = Math.max(dh, 250);
                     } else {
-                        dhRaised = Math.max(dhCheck, 200);
+                        const dhRaw = parseFloat(document.getElementById(`${proc}_${cat}_dh`).value)||0;
+                        const dh = Math.ceil(dhRaw * 3.28084); // Re-apply conversion for correct logic check
+                        dhRaised = Math.max(dh, 200);
                     }
                     regulatoryMin = getRVRFromTable(dhRaised, document.getElementById('lightType').value);
                 } else if (CIRCLING_PROC.some(p=>p.code===proc)) {
                     regulatoryMin = {A:1.5,B:1.6,C:2.4,D:3.6}[cat];
-                } else { // Non-Precision
+                } else {
+                    let mdhRaw = parseFloat(document.getElementById(`${proc}_${cat}_mdh`).value)||0;
+                    let mdh = Math.ceil(mdhRaw * 3.28084); // Re-apply conversion
+                    
                     let minMDH = 250;
                     if(NONPRECISION_PROC_300.some(p=>p.code===proc)) minMDH=300;
                     if(NONPRECISION_PROC_350.some(p=>p.code===proc)) minMDH=350;
-                    let mdhUsed = mdhCheck > 0 ? Math.max(mdhCheck, minMDH) : minMDH;
+                    let mdhUsed = mdh > 0 ? Math.max(mdh, minMDH) : minMDH;
                     if(mdhUsed > 1200) return value >= 5000;
-                    
-                    // Replicate Non-CDFA check from main logic
+                    const isProcCDFA = document.getElementById('cdfa').checked;
                     const isNonCDFA = document.getElementById('noncdfa').checked;
                     const isNonCDFA_AB = document.getElementById('noncdfa_ab').checked;
                     const isNonCDFA_CD = document.getElementById('noncdfa_cd').checked;
@@ -585,7 +501,6 @@
                         if(isNonCDFA_CD && ['C','D'].includes(cat)) return true;
                         return false;
                     }
-
                     const rvrTable = getRVRFromTable(mdhUsed, document.getElementById('lightType').value);
                     if(!isNonCDFAForCat(cat)) {
                         regulatoryMin = Math.max(750, rvrTable);
@@ -593,13 +508,15 @@
                         regulatoryMin = Math.max(['A','B'].includes(cat)?1000:1200, rvrTable);
                     }
                 }
-                
-                if(rvrVisRaw == 0) return false;
-                
-                // Compare the user's RAW RVR/VIS input (no conversion for these fields) against the calculated regulatory minimum
-                return rvrVisRaw > regulatoryMin;
+                let userVal = null;
+                if (CIRCLING_PROC.some(p=>p.code===proc)) {
+                    userVal = parseFloat(document.getElementById(`${proc}_${cat}_vis`).value)||null;
+                } else {
+                    userVal = parseFloat(document.getElementById(`${proc}_${cat}_rvr`).value)||null;
+                }
+                if(userVal == null || userVal === 0) return false;
+                return userVal > regulatoryMin;
             }
-            
             let html = `<div style="display:flex;gap:14px;align-items:center;margin-bottom:12px;">`;
             html += `<span class="state-indicator state-standard" id="summaryStandardBox">STANDARD</span>`;
             html += `<span class="state-indicator" id="summaryStateBox">STATE</span>`;
@@ -611,6 +528,7 @@
                 CATS.forEach(cat=>{
                     const resultText = results[proc.code][cat] || '';
                     let highlight = '';
+                    let stateByInput = false;
                     if(resultText) {
                         let m = /RVR:\s*(\d+(?:\.\d+)?)m/i.exec(resultText);
                         if(!m) m = /VIS:\s*(\d+(?:\.\d+)?)/i.exec(resultText);
@@ -619,6 +537,7 @@
                             if(isStateValue(proc.code,cat,num)) {
                                 highlight = "color:#be2222;font-weight:bold;";
                                 anyState = true;
+                                stateByInput = true;
                             }
                         }
                     }
