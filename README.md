@@ -98,5 +98,5 @@ Latest update (2025-08-17): Added the "Circling Raise for Procedure" feature, wh
 
 ***
 
-**This is the latest version—fully up to date with every rule and feature. Paste the update, use as intended, and enjoy clear regulatory compliance feedback!**
+
 
