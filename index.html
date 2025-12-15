@@ -72,6 +72,16 @@
           color: #be2222;
           border: 2px solid #da3131;
         }
+        
+        /* New warning style for Circling check */
+        .raise-circling-note {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.85em;
+            color: #d9534f; /* reddish color */
+            font-weight: normal;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -487,15 +497,22 @@
             document.getElementById('meterToFeetConversion').checked = false;
 
 
-            // Set calculator checkboxes: default is all precision checked, circling checked, others unchecked
-            [...PRECISION_PROC, ...CIRCLING_PROC].forEach(proc => {
-                let el = document.getElementById('show_'+proc.code);
-                if(el) el.checked = true;
-            });
-            [...NONPRECISION_PROC_250, ...NONPRECISION_PROC_300, ...NONPRECISION_PROC_350].forEach(proc => {
+            // Set calculator checkboxes: RESET TO DEFAULT (Only Circling Checked)
+            // 1. Uncheck all Precision and Non-Precision
+            [
+                ...PRECISION_PROC, 
+                ...NONPRECISION_PROC_250, 
+                ...NONPRECISION_PROC_300, 
+                ...NONPRECISION_PROC_350
+            ].forEach(proc => {
                 let el = document.getElementById('show_'+proc.code);
                 if(el) el.checked = false;
             });
+
+            // 2. Check only Circling
+            let circlingEl = document.getElementById('show_circling');
+            if(circlingEl) circlingEl.checked = true;
+
             updateCalculatorVisibility();
 
             // Optional: scroll to top, focus the first input, or reset selects if you want
@@ -533,6 +550,27 @@
                     return Math.ceil(rawValue * 3.28084);
                  }
                  return rawValue;
+            }
+
+            // Helper to parse result strings back to numbers for comparison
+            // Matches format like: "MDA: 500(400), RVR: 1000m" or "DA: 200(100), VIS: 1.5km"
+            function parseResultString(str) {
+                if(!str) return null;
+                // Regex breakdown:
+                // Group 1: Altitude (DA/MDA)
+                // Group 2: Height (DH/MDH) in parens
+                // Group 3: Value
+                // Group 4: Unit (m or km)
+                const regex = /(?:DA|MDA|DH):\s*(\d+)\s*\((\d+)\),\s*(?:RVR|VIS):\s*([\d\.]+)(m|km)/i;
+                const match = str.match(regex);
+                if(!match) return null;
+                return {
+                    alt: parseInt(match[1]), // DA or MDA
+                    hgt: parseInt(match[2]), // DH or MDH
+                    vis: parseFloat(match[3]),
+                    visVal: parseFloat(match[3]), // Raw value for display/check
+                    unit: match[4].toLowerCase()
+                };
             }
 
             let anyState = false;
@@ -611,7 +649,10 @@
                 CATS.forEach(cat=>{
                     const resultText = results[proc.code][cat] || '';
                     let highlight = '';
+                    let circlingNote = ''; // Variable to hold the warning text
+
                     if(resultText) {
+                        // 1. Existing STATE Check
                         let m = /RVR:\s*(\d+(?:\.\d+)?)m/i.exec(resultText);
                         if(!m) m = /VIS:\s*(\d+(?:\.\d+)?)/i.exec(resultText);
                         if(m) {
@@ -621,8 +662,41 @@
                                 anyState = true;
                             }
                         }
+
+                        // 2. NEW LOGIC: Check vs Circling
+                        // Only applicable if this procedure is NOT circling, and Circling results exist for this CAT
+                        if(proc.code !== 'circling' && results.circling && results.circling[cat]) {
+                            const procData = parseResultString(resultText);
+                            const circData = parseResultString(results.circling[cat]);
+                            
+                            if (procData && circData) {
+                                let warnings = [];
+                                
+                                // Compare Altitudes (DA/MDA vs Circling MDA)
+                                if (procData.alt > circData.alt) {
+                                    warnings.push("DA/MDA > Circling MDA");
+                                }
+                                // Compare Heights (DH/MDH vs Circling MDH)
+                                if (procData.hgt > circData.hgt) {
+                                     warnings.push("DH/MDH > Circling MDH");
+                                }
+
+                                // Compare Visibility
+                                // Normalize both to meters for comparison
+                                const procVisM = procData.unit === 'km' ? procData.vis * 1000 : procData.vis;
+                                const circVisM = circData.unit === 'km' ? circData.vis * 1000 : circData.vis;
+
+                                if (procVisM > circVisM) {
+                                    warnings.push("RVR/VIS > Circling VIS");
+                                }
+
+                                if (warnings.length > 0) {
+                                    circlingNote = `<span class="raise-circling-note">Raise Circling (${warnings.join(', ')})</span>`;
+                                }
+                            }
+                        }
                     }
-                    html += `<div>CAT ${cat}: <span style="${highlight}">${resultText}</span></div>`;
+                    html += `<div>CAT ${cat}: <span style="${highlight}">${resultText}</span>${circlingNote}</div>`;
                 });
                 html += `</div>`;
             });
