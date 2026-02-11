@@ -110,9 +110,17 @@ Precision Floor Logic: Implemented mandatory minimums (250ft for LNAV/VNAV, 200f
 
 index.html: The complete application. Contains the CSS grid layout, the RVR lookup arrays, and the calculation event listeners.
 
-📝 Usage Note
+⚖️ License
 
-This tool is an experiment/demonstration tool. For operational flight planning, always cross-reference results with official Jeppesen, Lido, or State AIP charts.
+This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
+
+Copyleft: Any derivative work must also be open-source under the same license.
+
+Freedom: You are free to use, modify, and distribute this software.
+
+⚠️ Disclaimer (Experimental Tool)
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. This is an experiment/demonstration tool only. Calculations provided by this tool are for educational purposes and must NOT be used for actual flight planning or navigation. Always cross-reference results with official charts. The author assumes no liability for errors or consequences resulting from the use of this software.
 
 Created by Vishal Kumar Basson
 
