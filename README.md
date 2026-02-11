@@ -1,8 +1,8 @@
 ## Aviation Minima Tool
 
-#### Version: Latest (2025-08-16)
+#### Version: Latest (2/11/26)
 
-***
+
 
 ## **Overview**
 
@@ -72,7 +72,7 @@ Latest update (2025-08-17): Added the "Circling Raise for Procedure" feature, wh
 
 ***
 
-## **Installation**
+## **Installation** (See Recent update- Use only "index.html" file)
 
 - Copy `index.html` and `calculator.js` to your project directory.
 - Ensure CSS snippet for state indicators is within `` or `` block in your HTML.
