@@ -96,7 +96,25 @@ Latest update (2025-08-17): Added the "Circling Raise for Procedure" feature, wh
 - No per-row box, no workflow clutter—simple, clear summary.
 - All other calculation and logic features from previous versions remain.
 
-***
+🚀 Recent Updates (11-2-26)
+
+Single-File Consolidation: Integrated all HTML structure, CSS styling, and JavaScript logic into index.html for maximum compatibility and zero-latency performance.
+
+Dynamic Unit Conversion: Added a real-time toggle to switch between Meter and Feet inputs for DH/MDH, with automatic conversion to the standard 3.28084 ratio.
+
+Enhanced CDFA/Non-CDFA Logic: Automated selection for Non-CDFA rules per Category (A/B or C/D) with forced 5000m RVR rules for MDH exceeding 1200ft.
+
+Precision Floor Logic: Implemented mandatory minimums (250ft for LNAV/VNAV, 200ft for CAT 1) ensuring calculations never dip below safety standards.
+
+📂 File Structure
+
+index.html: The complete application. Contains the CSS grid layout, the RVR lookup arrays, and the calculation event listeners.
+
+📝 Usage Note
+
+This tool is an experiment/demonstration tool. For operational flight planning, always cross-reference results with official Jeppesen, Lido, or State AIP charts.
+
+Created by Vishal Kumar Basson
 
 
 
