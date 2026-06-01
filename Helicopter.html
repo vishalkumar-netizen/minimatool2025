@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Helicopter Minima Calculator</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 for reactive data binding and calculations -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <style>
+        body {
+            background-color: #f1f5f9;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        input, select {
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 text-slate-800">
+
+    <div id="app" class="max-w-7xl mx-auto space-y-8">
+        
+        <div class="text-center space-y-2 mb-10">
+            <h1 class="text-3xl font-bold text-slate-800">Helicopter Minima Calculator</h1>
+            <p class="text-slate-500">Calculate approach minima (DA/MDA, DH/MDH, and RVR) instantly.</p>
+            <p class="text-red-600 font-bold text-lg mt-4 bg-red-50 py-2 rounded-lg border border-red-200 inline-block px-6">TAKE LNAV/VNAV AS NPA (NON-PRECISION APPROACH)</p>
+        </div>
+
+        <!-- Loop through Box 1 and Box 2 (Straight-In Approaches) -->
+        <div v-for="(box, boxIndex) in boxes" :key="box.id" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            
+            <!-- Box Header -->
+            <div class="bg-sky-700 text-white p-4 font-semibold text-lg flex items-center justify-between">
+                <span>{{ box.title }}</span>
+            </div>
+            
+            <!-- Header Inputs -->
+            <div class="p-5 border-b border-slate-200 bg-slate-50 flex flex-wrap gap-6 items-end">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">RWY</label>
+                    <input type="text" v-model="box.rwy" placeholder="e.g. 19" class="w-32 border border-slate-300 rounded-md p-2 bg-white text-slate-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">THR ELV (ft)</label>
+                    <input type="number" v-model="box.thrElv" placeholder="e.g. 203" class="w-32 border border-slate-300 rounded-md p-2 bg-white text-slate-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">ALS Type</label>
+                    <select v-model="box.als" class="w-40 border border-slate-300 rounded-md p-2 bg-white text-slate-800 font-medium">
+                        <option value="FALS">FALS</option>
+                        <option value="IALS">IALS</option>
+                        <option value="BALS">BALS</option>
+                        <option value="NALS">NALS</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Box Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600">
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-24">R/W</th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold">Procedure Name</th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-28 bg-blue-50 text-blue-800">DH/MDH<br><span class="text-xs font-normal opacity-80">(User Input)</span></th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-28">Type</th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-28 text-center bg-slate-200 text-slate-800">DA/MDA<br><span class="text-xs font-normal opacity-80">(Calc)</span></th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-28 text-center bg-slate-200">DH/MDH<br><span class="text-xs font-normal opacity-80">(Calc)</span></th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-20 text-center bg-slate-200">FALS<br><span class="text-xs font-normal opacity-80">(RVR)</span></th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-20 text-center bg-slate-200">IALS<br><span class="text-xs font-normal opacity-80">(RVR)</span></th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-20 text-center bg-slate-200">BALS<br><span class="text-xs font-normal opacity-80">(RVR)</span></th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-20 text-center bg-slate-200">NALS<br><span class="text-xs font-normal opacity-80">(RVR)</span></th>
+                            <th class="p-3 border-b border-slate-200 w-10"></th> <!-- Remove row col -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(row, rowIndex) in box.rows" :key="row.id" class="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                            <td class="p-2 border-r border-slate-200">
+                                <input type="text" v-model="row.rw" placeholder="R/W" class="w-full border border-slate-300 rounded p-1.5 text-sm">
+                            </td>
+                            <td class="p-2 border-r border-slate-200">
+                                <input type="text" v-model="row.procedure" placeholder="e.g. IL+DME" class="w-full border border-slate-300 rounded p-1.5 text-sm">
+                            </td>
+                            <td class="p-2 border-r border-slate-200 bg-blue-50">
+                                <input type="number" v-model="row.dh" placeholder="Input" class="w-full border border-blue-300 rounded p-1.5 text-sm font-medium">
+                            </td>
+                            <td class="p-2 border-r border-slate-200">
+                                <select v-model="row.type" class="w-full border border-slate-300 rounded p-1.5 text-sm">
+                                    <option value="PA">PA</option>
+                                    <option value="NPA">NPA</option>
+                                </select>
+                            </td>
+                            <!-- Calculated Values -->
+                            <td class="p-2 border-r border-slate-200 bg-slate-100 text-center font-bold text-base text-slate-800">
+                                {{ calcDaMda(row.dh, box.thrElv) }}
+                            </td>
+                            <td class="p-2 border-r border-slate-200 bg-slate-100 text-center text-slate-700">
+                                {{ round10(row.dh) }}
+                            </td>
+                            <td class="p-2 border-r border-slate-200 bg-slate-100 text-center font-medium" :class="{'text-slate-400': getRvr(row.dh, row.type, box.als, 'FALS') === 'NA'}">
+                                {{ getRvr(row.dh, row.type, box.als, 'FALS') }}
+                            </td>
+                            <td class="p-2 border-r border-slate-200 bg-slate-100 text-center font-medium" :class="{'text-slate-400': getRvr(row.dh, row.type, box.als, 'IALS') === 'NA'}">
+                                {{ getRvr(row.dh, row.type, box.als, 'IALS') }}
+                            </td>
+                            <td class="p-2 border-r border-slate-200 bg-slate-100 text-center font-medium" :class="{'text-slate-400': getRvr(row.dh, row.type, box.als, 'BALS') === 'NA'}">
+                                {{ getRvr(row.dh, row.type, box.als, 'BALS') }}
+                            </td>
+                            <td class="p-2 border-r border-slate-200 bg-slate-100 text-center font-medium">
+                                {{ getRvr(row.dh, row.type, box.als, 'NALS') }}
+                            </td>
+                            <td class="p-2 text-center">
+                                <button v-if="box.rows.length > 1" @click="removeStraightInRow(boxIndex, rowIndex)" class="text-red-400 hover:text-red-600 transition-colors" title="Remove Row">
+                                    <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add Row Button -->
+            <div class="p-3 bg-slate-50 border-t border-slate-200">
+                <button @click="addStraightInRow(boxIndex)" class="flex items-center gap-1 text-sky-700 hover:text-sky-900 font-semibold text-sm transition-colors px-3 py-1.5 rounded-md hover:bg-sky-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Add Procedure
+                </button>
+            </div>
+
+            <!-- Notes Section -->
+            <div class="p-4 bg-white border-t border-slate-200">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-sm font-bold text-slate-600 uppercase tracking-wider">Notes</h4>
+                    <button @click="addStraightInNote(boxIndex)" class="flex items-center gap-1 text-sky-600 hover:text-sky-800 font-semibold text-xs transition-colors px-2 py-1 rounded hover:bg-sky-50">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Add Note
+                    </button>
+                </div>
+                <div class="space-y-2">
+                    <div v-for="(note, noteIndex) in box.notes" :key="note.id" class="flex gap-2 items-center">
+                        <input type="text" v-model="note.text" placeholder="Type your note here..." class="flex-1 border border-slate-300 rounded p-1.5 text-sm bg-yellow-50 focus:bg-white focus:ring-1 focus:ring-blue-300 transition-colors">
+                        <button @click="removeStraightInNote(boxIndex, noteIndex)" class="text-red-400 hover:text-red-600 transition-colors" title="Remove Note">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                    <div v-if="box.notes.length === 0" class="text-xs text-slate-400 italic">No notes added.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Box 3: Circling Approach -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <!-- Box Header -->
+            <div class="bg-teal-700 text-white p-4 font-semibold text-lg flex items-center justify-between">
+                <span>{{ circlingBox.title }}</span>
+            </div>
+            
+            <!-- Header Inputs -->
+            <div class="p-5 border-b border-slate-200 bg-slate-50 flex flex-wrap gap-6 items-end">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">AD ELV (ft)</label>
+                    <input type="number" v-model="circlingBox.adElv" placeholder="e.g. 5" class="w-32 border border-slate-300 rounded-md p-2 bg-white text-slate-800">
+                </div>
+            </div>
+
+            <!-- Box Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-600">
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-32">R/W</th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold">Procedure Name</th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-32 bg-teal-50 text-teal-800">MDH<br><span class="text-xs font-normal opacity-80">(User Input)</span></th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-32 text-center bg-slate-200 text-slate-800">MDA<br><span class="text-xs font-normal opacity-80">(Calc)</span></th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-32 text-center bg-slate-200 text-slate-800">MDH<br><span class="text-xs font-normal opacity-80">(Calc)</span></th>
+                            <th class="p-3 border-b border-r border-slate-200 font-semibold w-32 text-center bg-slate-200 text-slate-800">VIS</th>
+                            <th class="p-3 border-b border-slate-200 w-10"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(row, rowIndex) in circlingBox.rows" :key="row.id" class="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                            <td class="p-2 border-r border-slate-200">
+                                <input type="text" v-model="row.rw" placeholder="R/W" class="w-full border border-slate-300 rounded p-1.5 text-sm">
+                            </td>
+                            <td class="p-2 border-r border-slate-200">
+                                <input type="text" v-model="row.procedure" placeholder="Procedure Name" class="w-full border border-slate-300 rounded p-1.5 text-sm">
+                            </td>
+                            <td class="p-2 border-r border-slate-200 bg-teal-50">
+                                <input type="number" v-model="row.mdh" placeholder="Input" class="w-full border border-teal-300 rounded p-1.5 text-sm font-medium">
+                            </td>
+                            <!-- Calculated Values -->
+                            <td class="p-2 border-r border-slate-200 bg-slate-100 text-center font-bold text-base text-slate-800">
+                                {{ calcDaMda(row.mdh, circlingBox.adElv) }}
+                            </td>
+                            <td class="p-2 border-r border-slate-200 bg-slate-100 text-center text-slate-700">
+                                {{ round10(row.mdh) }}
+                            </td>
+                            <td class="p-2 border-r border-slate-200 bg-slate-100 text-center font-medium text-slate-700">
+                                800
+                            </td>
+                            <td class="p-2 text-center">
+                                <button v-if="circlingBox.rows.length > 1" @click="removeCirclingRow(rowIndex)" class="text-red-400 hover:text-red-600 transition-colors" title="Remove Row">
+                                    <svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add Row Button -->
+            <div class="p-3 bg-slate-50 border-t border-slate-200">
+                <button @click="addCirclingRow()" class="flex items-center gap-1 text-teal-700 hover:text-teal-900 font-semibold text-sm transition-colors px-3 py-1.5 rounded-md hover:bg-teal-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Add Procedure
+                </button>
+            </div>
+
+            <!-- Circling Notes Section -->
+            <div class="p-4 bg-white border-t border-slate-200">
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-sm font-bold text-slate-600 uppercase tracking-wider">Notes</h4>
+                    <button @click="addCirclingNote()" class="flex items-center gap-1 text-teal-600 hover:text-teal-800 font-semibold text-xs transition-colors px-2 py-1 rounded hover:bg-teal-50">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Add Note
+                    </button>
+                </div>
+                <div class="space-y-2">
+                    <div v-for="(note, noteIndex) in circlingBox.notes" :key="note.id" class="flex gap-2 items-center">
+                        <input type="text" v-model="note.text" placeholder="Type your note here..." class="flex-1 border border-slate-300 rounded p-1.5 text-sm bg-yellow-50 focus:bg-white focus:ring-1 focus:ring-teal-300 transition-colors">
+                        <button @click="removeCirclingNote(noteIndex)" class="text-red-400 hover:text-red-600 transition-colors" title="Remove Note">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                    <div v-if="circlingBox.notes.length === 0" class="text-xs text-slate-400 italic">No notes added.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Print Button -->
+        <div class="text-center mt-12 mb-8 print:hidden">
+            <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors text-lg flex items-center justify-center gap-2 mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                Print / Save as PDF
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    // Box 1 and 2 Definitions
+                    boxes: [
+                        {
+                            id: 1,
+                            title: 'Box 1: Straight-in Approach',
+                            rwy: '',
+                            thrElv: '',
+                            als: 'FALS',
+                            rows: [
+                                { id: Date.now(), rw: '', procedure: '', dh: '', type: 'PA' }
+                            ],
+                            notes: []
+                        },
+                        {
+                            id: 2,
+                            title: 'Box 2: Straight-in Approach',
+                            rwy: '',
+                            thrElv: '',
+                            als: 'FALS',
+                            rows: [
+                                { id: Date.now() + 1, rw: '', procedure: '', dh: '', type: 'PA' }
+                            ],
+                            notes: []
+                        }
+                    ],
+                    // Box 3 Definition
+                    circlingBox: {
+                        title: 'Box 3: Circling Approach',
+                        adElv: '',
+                        rows: [
+                            { id: Date.now() + 2, rw: '', procedure: '', mdh: '' }
+                        ],
+                        notes: []
+                    }
+                }
+            },
+            methods: {
+                /**
+                 * Rounds a value UP to the next multiple of 10.
+                 * Ex: 201 -> 210, 210 -> 210
+                 */
+                round10(val) {
+                    if (val === '' || val === null || isNaN(val)) return '';
+                    return Math.ceil(Number(val) / 10) * 10;
+                },
+
+                /**
+                 * Calculates DA/MDA.
+                 * Formula: (Input DH/MDH + ELV) rounded up to the nearest 10
+                 */
+                calcDaMda(dh, elv) {
+                    if (dh === '' || elv === '' || dh === null || elv === null) return '';
+                    return this.round10(Number(dh) + Number(elv));
+                },
+
+                /**
+                 * Retrieves the Correct RVR Value based on rule table
+                 */
+                getRvr(dh, type, als, rvrType) {
+                    if (dh === '' || dh === null || isNaN(dh)) return '';
+                    let d = Number(dh);
+                    let vals = [];
+
+                    // Rule matching based on Approach Type and Minima boundaries
+                    if (type === 'PA') {
+                        if (d <= 200) vals = [500, 600, 700, 1000];
+                        else if (d <= 250) vals = [550, 650, 750, 1000];
+                        else if (d <= 300) vals = [600, 700, 800, 1000];
+                        else vals = [750, 800, 900, 1000];
+                    } else { // NPA
+                        if (d <= 299) vals = [600, 800, 1000, 1000];
+                        else if (d <= 449) vals = [800, 1000, 1000, 1000];
+                        else vals = [1000, 1000, 1000, 1000];
+                    }
+
+                    // Base mapped array [FALS, IALS, BALS, NALS]
+                    let rvrObj = { FALS: vals[0], IALS: vals[1], BALS: vals[2], NALS: vals[3] };
+
+                    // Override with NA based on available ALS Light setup
+                    if (als === 'IALS') {
+                        rvrObj.FALS = 'NA';
+                    }
+                    if (als === 'BALS') {
+                        rvrObj.FALS = 'NA'; 
+                        rvrObj.IALS = 'NA';
+                    }
+                    if (als === 'NALS') {
+                        rvrObj.FALS = 'NA'; 
+                        rvrObj.IALS = 'NA'; 
+                        rvrObj.BALS = 'NA';
+                    }
+
+                    return rvrObj[rvrType];
+                },
+
+                /** Row Management Methods */
+                addStraightInRow(boxIndex) {
+                    this.boxes[boxIndex].rows.push({
+                        id: Date.now() + Math.random(),
+                        rw: this.boxes[boxIndex].rwy, // Auto fill Runway with header info for convenience
+                        procedure: '',
+                        dh: '',
+                        type: 'PA'
+                    });
+                },
+                addCirclingRow() {
+                    this.circlingBox.rows.push({
+                        id: Date.now() + Math.random(),
+                        rw: '',
+                        procedure: '',
+                        mdh: ''
+                    });
+                },
+                removeStraightInRow(boxIndex, rowIndex) {
+                    this.boxes[boxIndex].rows.splice(rowIndex, 1);
+                },
+                removeCirclingRow(rowIndex) {
+                    this.circlingBox.rows.splice(rowIndex, 1);
+                },
+
+                /** Notes Management Methods */
+                addStraightInNote(boxIndex) {
+                    this.boxes[boxIndex].notes.push({ id: Date.now() + Math.random(), text: '' });
+                },
+                removeStraightInNote(boxIndex, noteIndex) {
+                    this.boxes[boxIndex].notes.splice(noteIndex, 1);
+                },
+                addCirclingNote() {
+                    this.circlingBox.notes.push({ id: Date.now() + Math.random(), text: '' });
+                },
+                removeCirclingNote(noteIndex) {
+                    this.circlingBox.notes.splice(noteIndex, 1);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
