@@ -125,6 +125,13 @@
                 Apply Meter to Feet Conversion Rule (DA, DH, MDA, MDH inputs interpreted as Meters)
             </label>
         </div>
+        <!-- NEW RVR/VIS TOGGLE CHECKBOX -->
+        <div class="conversion-control" style="margin-top:-5px; padding: 8px 10px;">
+            <label for="toggleRvrVis">
+                <input type="checkbox" id="toggleRvrVis" onchange="toggleRvrVisInputs()">
+                Input manual RVR / VIS
+            </label>
+        </div>
 
         <div class="proc-checkbox-group" id="procedureCheckboxes"></div>
         <div class="calculators" id="calculatorsArea"></div>
@@ -275,8 +282,9 @@
                 if(mdaType) fields += `<input type="number" placeholder="MDA" id="${proc}_${cat}_mda">`;
                 if(dhType) fields += `<input type="number" placeholder="DH" id="${proc}_${cat}_dh">`;
                 if(mdhType) fields += `<input type="number" placeholder="MDH" id="${proc}_${cat}_mdh">`;
-                if(inputTypes.includes('RVR'))  fields += `<input type="number" placeholder="RVR" id="${proc}_${cat}_rvr">`;
-                if(inputTypes.includes('VIS'))  fields += `<input type="number" placeholder="VIS" id="${proc}_${cat}_vis" step="0.1">`;
+                // CHANGE THESE TWO LINES:
+                if(inputTypes.includes('RVR'))  fields += `<input type="number" placeholder="RVR" id="${proc}_${cat}_rvr" class="rvr-vis-input" style="display:none;">`;
+                if(inputTypes.includes('VIS'))  fields += `<input type="number" placeholder="VIS" id="${proc}_${cat}_vis" step="0.1" class="rvr-vis-input" style="display:none;">`;
                 
                 return `<div class="cat-row"><div class="cat-label">CAT ${cat}</div>${fields}<div class="result" id="${proc}_${cat}_result"></div></div>`;
             }).join('');
@@ -523,7 +531,12 @@
             
             // Reset conversion checkbox (new addition)
             document.getElementById('meterToFeetConversion').checked = false;
-
+            // NEW: Reset RVR/VIS toggle checkbox and hide fields
+            let rvrVisBox = document.getElementById('toggleRvrVis');
+            if(rvrVisBox) {
+                rvrVisBox.checked = false;
+                toggleRvrVisInputs();
+            }
 
             // Set calculator checkboxes: RESET TO DEFAULT (Only Circling Checked)
             // 1. Uncheck all Precision and Non-Precision
@@ -546,6 +559,16 @@
             // Optional: scroll to top, focus the first input, or reset selects if you want
             window.scrollTo(0,0);
         }
+        // NEW FUNCTION: Toggle RVR/VIS visibility and clear values if hidden
+        function toggleRvrVisInputs() {
+            const show = document.getElementById('toggleRvrVis').checked;
+            document.querySelectorAll('.rvr-vis-input').forEach(input => {
+                input.style.display = show ? 'inline-block' : 'none';
+                if (!show) input.value = ''; // Clear the input so it stops affecting calculations
+            });
+            calculate(); // Recalculate immediately after hiding/clearing
+        }
+        
         // ---- Top-right Page Zoom Controls ----
         let zoomLevel = 1;
         const minZoom = 0.7;
