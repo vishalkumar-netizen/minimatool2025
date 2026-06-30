@@ -538,7 +538,7 @@
                 toggleRvrVisInputs();
             }
 
-            // Set calculator checkboxes: RESET TO DEFAULT (Only Circling Checked)
+            // Set calculator checkboxes: RESET TO DEFAULT 
             // 1. Uncheck all Precision and Non-Precision
             [
                 ...PRECISION_PROC, 
@@ -550,9 +550,9 @@
                 if(el) el.checked = false;
             });
 
-            // 2. Check only Circling
+            // 2. Uncheck Circling for a complete reset
             let circlingEl = document.getElementById('show_circling');
-            if(circlingEl) circlingEl.checked = true;
+            if(circlingEl) circlingEl.checked = false;
 
             updateCalculatorVisibility();
 
