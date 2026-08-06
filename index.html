@@ -399,11 +399,9 @@
                     const rvrTable = getRVRFromTable(dhRaised,lightType);
                     let rvrFinal = Math.max(rvrTable, rvr); // Table is real minimum for precision
                     
-                    // Apply RVR max limits if CDFA
-                    if(!isNonCDFAForCat(cat)) {
-                        const maxRVR = ['A','B'].includes(cat)?1500:2400;
-                        if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
-                    }
+                    // Precision approaches inherently use continuous descent, ALWAYS apply max limits
+                    const maxRVR = ['A','B'].includes(cat) ? 1500 : 2400;
+                    if(rvrFinal > maxRVR && (!rvr || rvr <= maxRVR)) rvrFinal = maxRVR;
                     
                     const res = `DA: ${daFinal}(${dhRaised}), RVR: ${rvrFinal}m`;
                     // Check if any raw input exists to display result
