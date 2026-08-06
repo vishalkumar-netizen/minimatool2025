@@ -397,11 +397,13 @@
                     const daCalc = thrElev + dhRaised;
                     const daFinal = Math.max(da, daCalc);
                     const rvrTable = getRVRFromTable(dhRaised,lightType);
-                    let rvrFinal = Math.max(rvrTable, rvr); // Table is real minimum for precision
                     
-                    // Precision approaches inherently use continuous descent, ALWAYS apply max limits
+                    // Standard Precision RVR table value is capped at 1500m (CAT A/B) / 2400m (CAT C/D)
                     const maxRVR = ['A','B'].includes(cat) ? 1500 : 2400;
-                    if(rvrFinal > maxRVR && (!rvr || rvr <= maxRVR)) rvrFinal = maxRVR;
+                    const standardRVR = Math.min(rvrTable, maxRVR);
+                    
+                    // Take State RVR if provided and higher than the standard limit
+                    let rvrFinal = Math.max(standardRVR, rvr);
                     
                     const res = `DA: ${daFinal}(${dhRaised}), RVR: ${rvrFinal}m`;
                     // Check if any raw input exists to display result
