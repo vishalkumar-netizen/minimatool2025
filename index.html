@@ -463,16 +463,15 @@
                     const rvrTable = getRVRFromTable(mdhUsed||minMDH, lightType);
                     let rvrFinal;
                     if(!isNonCDFAForCat(cat)) { // CDFA min 750, regular cap
-                        rvrFinal = Math.max(750, rvrTable, rvr);
-                        const maxRVR = ['A','B'].includes(cat)?1500:2400;
-                        if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
+                        const maxRVR = ['A','B'].includes(cat) ? 1500 : 2400;
+                        const standardRVR = Math.max(750, Math.min(rvrTable, maxRVR));
+                        rvrFinal = Math.max(standardRVR, rvr);
                     } else { // Non-CDFA min 1000/1200
                         let minRVR = ['A','B'].includes(cat)?1000:1200;
                         rvrFinal = Math.max(minRVR, rvrTable, rvr);
                     }
                     const res = `MDA: ${calcMDA}(${mdhUsed}), RVR: ${rvrFinal}m`;
-                    document.getElementById(`${proc.code}_${cat}_result`).innerText = mdaRaw||mdhRaw||rvr?res:"";
-                    summary[proc.code][cat] = mdaRaw||mdhRaw||rvr?res:"";
+
                 });
             });
             // --- CIRCLING (unchanged, no RVR logic)
