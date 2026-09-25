@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,7 +29,7 @@
         #summaryResults h2 { text-align:center;margin-bottom:8px;}
         #summaryResults h3 { margin-bottom:0;}
         .footer { text-align: center; margin-top: 26px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px; }
-        /* Conversion Control */
+        
         .conversion-control { 
             margin-bottom: 15px; 
             padding: 10px; 
@@ -51,7 +52,6 @@
             height: 20px;
         }
 
-        /* State Indicators Styles */
         .state-indicator {
           display: inline-block;
           min-width: 90px;
@@ -73,12 +73,11 @@
           border: 2px solid #da3131;
         }
         
-        /* New warning style for Circling check */
         .raise-circling-note {
             display: block;
             margin-top: 4px;
             font-size: 0.85em;
-            color: #d9534f; /* reddish color */
+            color: #d9534f;
             font-weight: normal;
             font-style: italic;
         }
@@ -118,14 +117,12 @@
             </div>
         </div>
 
-        <!-- NEW CONVERSION CONTROL CHECKBOX -->
         <div class="conversion-control">
             <label for="meterToFeetConversion">
                 <input type="checkbox" id="meterToFeetConversion">
                 Apply Meter to Feet Conversion Rule (DA, DH, MDA, MDH inputs interpreted as Meters)
             </label>
         </div>
-        <!-- NEW RVR/VIS TOGGLE CHECKBOX -->
         <div class="conversion-control" style="margin-top:-5px; padding: 8px 10px;">
             <label for="toggleRvrVis">
                 <input type="checkbox" id="toggleRvrVis" onchange="toggleRvrVisInputs()">
@@ -139,18 +136,15 @@
         <button class="calculate-btn" type="button" onclick="clearAllInputs()">Clear All</button>
         <div id="summaryResults"></div>
        
-        <!-- NEW: VISIBLE LICENSE SECTION (UPDATED) -->
         <div class="license-footer">
             <p>
                 <b>Developer:</b> Vishal Kumar Basson (Team Minima) | 
                 <b>License:</b> GNU GPLv3 | 
                 <b>Source:</b> Github Open Source Project
             </p>
-        
         </div>
     </div>
 
-    <!-- ============ Fixed Top-Right Zoom Controls ============ -->
     <div id="page-zoom-controls" style="
       position: fixed;
       top: 18px; 
@@ -168,30 +162,29 @@
       <button type="button" onclick="zoomPage('-')" title="Zoom out" style="font-size:18px;">-</button>
       <span id="zoom-indicator" style="margin-left:8px;font-size:14px; color:#444;"></span>
     </div>
-    <!-- ============ Helicopter Redirect Button ============ -->
-<a href="Helicopter.html" style="
-    position: fixed;
-    top: 75px; 
-    right: 24px; 
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #007bff;
-    color: white;
-    text-decoration: none;
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-weight: bold;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-" onmouseover="this.style.background='#0056b3'" onmouseout="this.style.background='#007bff'">
-    🚁 Helicopter (Beta)
-</a>
+
+    <a href="Helicopter.html" style="
+        position: fixed;
+        top: 75px; 
+        right: 24px; 
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #007bff;
+        color: white;
+        text-decoration: none;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-weight: bold;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+    " onmouseover="this.style.background='#0056b3'" onmouseout="this.style.background='#007bff'">
+        🚁 Helicopter (Beta)
+    </a>
 
     <script>
-        // === Define Procedures ===
         const PRECISION_PROC = [
             { code: 'cat1', name: 'CAT 1' }, { code: 'rnp', name: 'RNP' }, { code: 'gls', name: 'GLS' },
             { code: 'par', name: 'PAR' }, { code: 'lpv', name: 'LPV' }, { code: 'lnavvnav', name: 'LNAV/VNAV' }
@@ -207,7 +200,6 @@
         const CIRCLING_PROC = [{ code: 'circling', name: 'Circling' }];
         const CATS = ['A','B','C','D'];
 
-        // Fill in all RVR ranges from your full table here!
         const RVR_TABLE_RANGES = [
             {low: 200, high: 210, FALS: 550, IALS: 750, BALS: 1000, NALS: 1200},
             {low: 211, high: 220, FALS: 550, IALS: 800, BALS: 1000, NALS: 1200},
@@ -249,6 +241,7 @@
             {low: 1101, high: 1200, FALS: 4600, IALS: 4900, BALS: 5000, NALS: 5000},
             {low: 1201, high: 9999, FALS: 5000, IALS: 5000, BALS: 5000, NALS: 5000}
         ];
+
         function getRVRFromTable(dh, lightType) {
             for (let row of RVR_TABLE_RANGES) {
                 if (dh >= row.low && dh <= row.high) return row[lightType];
@@ -257,7 +250,6 @@
         }
         function roundUpTo10(x) { return Math.ceil(x/10)*10; }
 
-        // --- UI Generation
         function renderProcedureCheckboxes() {
             let html = "";
             PRECISION_PROC.forEach(p=>{ html += `<label><input type="checkbox" id="show_${p.code}" checked> ${p.name}</label>`; });
@@ -268,11 +260,11 @@
             document.getElementById('procedureCheckboxes').innerHTML = html;
         }
         renderProcedureCheckboxes();
+
         function renderCalculators() {
             let html = "";
             const catRows = (proc, inputTypes) => CATS.map(cat=>{
                 let fields = '';
-                // Note: The conversion logic only affects the DH/DA/MDH/MDA values, not the RVR/VIS fields.
                 const daType = inputTypes.includes('DA') ? 'DA':'';
                 const mdaType = inputTypes.includes('MDA') ? 'MDA':'';
                 const dhType = inputTypes.includes('DH') ? 'DH':'';
@@ -282,12 +274,12 @@
                 if(mdaType) fields += `<input type="number" placeholder="MDA" id="${proc}_${cat}_mda">`;
                 if(dhType) fields += `<input type="number" placeholder="DH" id="${proc}_${cat}_dh">`;
                 if(mdhType) fields += `<input type="number" placeholder="MDH" id="${proc}_${cat}_mdh">`;
-                // CHANGE THESE TWO LINES:
                 if(inputTypes.includes('RVR'))  fields += `<input type="number" placeholder="RVR" id="${proc}_${cat}_rvr" class="rvr-vis-input" style="display:none;">`;
                 if(inputTypes.includes('VIS'))  fields += `<input type="number" placeholder="VIS" id="${proc}_${cat}_vis" step="0.1" class="rvr-vis-input" style="display:none;">`;
                 
                 return `<div class="cat-row"><div class="cat-label">CAT ${cat}</div>${fields}<div class="result" id="${proc}_${cat}_result"></div></div>`;
             }).join('');
+
             PRECISION_PROC.forEach(proc=>{
                 html += `<div class="calculator" id="${proc.code}Calculator">
                     <h3>${proc.name}</h3>
@@ -319,6 +311,7 @@
             document.getElementById('calculatorsArea').innerHTML = html;
         }
         renderCalculators();
+
         function updateCalculatorVisibility() {
             [...PRECISION_PROC, ...NONPRECISION_PROC_250, ...NONPRECISION_PROC_300, ...NONPRECISION_PROC_350, ...CIRCLING_PROC].forEach(proc=>{
                 const show = document.getElementById('show_'+proc.code)?.checked;
@@ -338,15 +331,12 @@
             document.getElementById('noncdfa_cd').checked = false;
         });
 
-        // --- MAIN LOGIC incl. ALL FEATURE/EXCEPTION RULES ---
         function calculate() {
-            // NOTE: AD Elev and THR Elev are always considered FEET (no conversion)
             const adElev = parseFloat(document.getElementById('adElev').value)||0;
             const thrElev = parseFloat(document.getElementById('thrElev').value)||0;
             const lightType = document.getElementById('lightType').value;
             const useMeterConversion = document.getElementById('meterToFeetConversion').checked;
 
-            // --- CDFA/Non-CDFA conditions ---
             const isProcCDFA = document.getElementById('cdfa').checked;
             const isNonCDFA = document.getElementById('noncdfa').checked;
             const isNonCDFA_AB = document.getElementById('noncdfa_ab').checked;
@@ -361,57 +351,44 @@
                 return false;
             }
 
-            // --- HELPER: Meter to Feet Conversion Rule ---
-            // Input value (Meters) * 3.28084, then Round Up to integer (Feet)
             function toFeet(rawValue) {
-                if (!rawValue && rawValue !== 0) return 0; // handle NaN/null/undefined
+                if (!rawValue && rawValue !== 0) return 0;
                 if (rawValue === 0) return 0;
-                // Only convert if the checkbox is ticked
                 if (useMeterConversion) {
-                    // Rule: input value * 3.28084 then ROUNDUP(val, 0)
                     return Math.ceil(rawValue * 3.28084);
                 }
-                // Otherwise, treat the raw value as feet
                 return rawValue;
             }
 
             let summary = {};
-            // --- PRECISION Approaches (incl. special LNAV/VNAV logic) ---
+
+            // --- PRECISION Approaches ---
             PRECISION_PROC.forEach(proc=>{
                 if(!document.getElementById('show_'+proc.code).checked) return;
                 summary[proc.code] = {};
                 CATS.forEach(cat=>{
-                    // Grab raw input (Meters for DA/DH if checkbox is ticked)
                     const daRaw = parseFloat(document.getElementById(`${proc.code}_${cat}_da`).value)||0;
                     const dhRaw = parseFloat(document.getElementById(`${proc.code}_${cat}_dh`).value)||0;
-                    
-                    // Apply Conversion Rule (or return raw value if box unchecked)
                     const da = toFeet(daRaw);
                     const dh = toFeet(dhRaw);
-                    
-                    // RVR is NOT converted (standard aviation logic + user constraint)
                     const rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`).value)||0;
 
-                    // --- For LNAV/VNAV, min DH is 250, else 200
                     const dhRaised = (proc.code === "lnavvnav") ? Math.max(dh, 250) : Math.max(dh, 200);
                     const daCalc = thrElev + dhRaised;
                     const daFinal = Math.max(da, daCalc);
                     const rvrTable = getRVRFromTable(dhRaised,lightType);
                     
-                    // Standard Precision RVR table value is capped at 1500m (CAT A/B) / 2400m (CAT C/D)
                     const maxRVR = ['A','B'].includes(cat) ? 1500 : 2400;
                     const standardRVR = Math.min(rvrTable, maxRVR);
-                    
-                    // Take State RVR if provided and higher than the standard limit
                     let rvrFinal = Math.max(standardRVR, rvr);
                     
                     const res = `DA: ${daFinal}(${dhRaised}), RVR: ${rvrFinal}m`;
-                    // Check if any raw input exists to display result
                     document.getElementById(`${proc.code}_${cat}_result`).innerText = daRaw||dhRaw||rvr ? res : '';
                     summary[proc.code][cat] = daRaw||dhRaw||rvr ? res : '';
                 });
             });
-            // --- NONPRECISION Approaches (incl. >1200 MDH rule) ---
+
+            // --- NONPRECISION Approaches ---
             [...NONPRECISION_PROC_250, ...NONPRECISION_PROC_300, ...NONPRECISION_PROC_350].forEach(proc=>{
                 if(!document.getElementById('show_'+proc.code).checked) return;
                 summary[proc.code] = {};
@@ -419,14 +396,10 @@
                 if(NONPRECISION_PROC_300.some(p=>p.code===proc.code)) minMDH=300;
                 if(NONPRECISION_PROC_350.some(p=>p.code===proc.code)) minMDH=350;
                 CATS.forEach(cat=>{
-                    // Grab raw input (Meters for MDA/MDH if checkbox is ticked)
                     const mdaRaw = parseFloat(document.getElementById(`${proc.code}_${cat}_mda`).value)||0;
                     const mdhRaw = parseFloat(document.getElementById(`${proc.code}_${cat}_mdh`).value)||0;
-                    
-                    // Apply Conversion Rule (or return raw value if box unchecked)
                     const mda = toFeet(mdaRaw);
                     const mdh = toFeet(mdhRaw);
-
                     const rvr = parseFloat(document.getElementById(`${proc.code}_${cat}_rvr`).value)||0;
                     
                     let mdhUsed = mdh;
@@ -437,36 +410,32 @@
                         calcMDA = roundUpTo10(thrElev + mdhUsed);
                         if(mda>calcMDA) calcMDA = mda;
                     } else if(mdh>=minMDH) {
-                        // MDH is >= minMDH, MDA value is taken as is unless it's lower than the calculated MDA based on MDH (unlikely if MDH is correct)
-                        // But for consistency:
                         calcMDA = mda;
                     } else if (mdh === 0) {
-                        // If only MDA is provided, use it
                         if (mda > 0) {
                             calcMDA = mda;
-                            mdhUsed = mda - thrElev; // Calculate MDH from MDA for RVR table use
+                            mdhUsed = mda - thrElev;
                         } else {
-                            // If both are 0, use minMDH and calculate MDA
                             mdhUsed = minMDH;
                             calcMDA = roundUpTo10(thrElev + mdhUsed);
                         }
                     }
 
-                    // --- New rule: If MDH > 1200 => always Non-CDFA, RVR = 5000m
                     if(mdhUsed > 1200) {
                         document.getElementById(`${proc.code}_${cat}_result`).innerText = 
                           `MDA: ${calcMDA}(${mdhUsed}), RVR: 5000m (forced Non-CDFA: MDH > 1200)`;
                         summary[proc.code][cat] = `MDA: ${calcMDA}(${mdhUsed}), RVR: 5000m (forced Non-CDFA: MDH > 1200)`;
-                        return; // skip further RVR processing for this row
+                        return;
                     }
 
                     const rvrTable = getRVRFromTable(mdhUsed||minMDH, lightType);
                     let rvrFinal;
-                    if(!isNonCDFAForCat(cat)) { // CDFA min 750, regular cap
-                        rvrFinal = Math.max(750, rvrTable, rvr);
-                        const maxRVR = ['A','B'].includes(cat)?1500:2400;
-                        if(rvrFinal>maxRVR && (!rvr || rvr<=maxRVR)) rvrFinal=maxRVR;
-                    } else { // Non-CDFA min 1000/1200
+                    if(!isNonCDFAForCat(cat)) { 
+                        // UPDATED CDFA LOGIC: Clean baseline capping before State comparison
+                        const maxRVR = ['A','B'].includes(cat) ? 1500 : 2400;
+                        const standardRVR = Math.max(750, Math.min(rvrTable, maxRVR));
+                        rvrFinal = Math.max(standardRVR, rvr);
+                    } else { 
                         let minRVR = ['A','B'].includes(cat)?1000:1200;
                         rvrFinal = Math.max(minRVR, rvrTable, rvr);
                     }
@@ -475,21 +444,18 @@
                     summary[proc.code][cat] = mdaRaw||mdhRaw||rvr?res:"";
                 });
             });
-            // --- CIRCLING (unchanged, no RVR logic)
+
+            // --- CIRCLING ---
             if(document.getElementById('show_circling').checked) {
                 summary.circling = {};
                 const catMins = {A:400,B:500,C:600,D:700};
                 const visDefaults = {A:1.5,B:1.6,C:2.4,D:3.6};
                 CATS.forEach(cat=>{
-                    // Grab raw input (Meters for MDA/MDH if checkbox is ticked)
                     const mdaRaw = parseFloat(document.getElementById(`circling_${cat}_mda`).value)||0;
                     const mdhRaw = parseFloat(document.getElementById(`circling_${cat}_mdh`).value)||0;
-                    
-                    // Apply Conversion Rule (or return raw value if box unchecked)
                     const mda = toFeet(mdaRaw);
                     const mdh = toFeet(mdhRaw);
-
-                    const vis = parseFloat(document.getElementById(`circling_${cat}_vis`).value)||0; // No change
+                    const vis = parseFloat(document.getElementById(`circling_${cat}_vis`).value)||0;
                     
                     const mdhUsed = Math.max(mdh,catMins[cat]);
                     const mdaCalc = roundUpTo10(adElev+mdhUsed);
@@ -514,32 +480,23 @@
         });
         
         function clearAllInputs() {
-            // Clear all numbers and text
             document.querySelectorAll('input[type="number"], input[type="text"]').forEach(el => el.value = '');
-
-            // Reset all result blocks
             document.querySelectorAll('.result').forEach(el => el.innerText = '');
             document.getElementById('summaryResults').innerHTML = '';
 
-            // Reset radio buttons: Default to CDFA
             document.getElementById('cdfa').checked = true;
             document.getElementById('noncdfa').checked = false;
-            // Hide Non CDFA subgroup, uncheck suboptions
             document.getElementById('noncdfaSubGroup').style.display = 'none';
             document.getElementById('noncdfa_ab').checked = false;
             document.getElementById('noncdfa_cd').checked = false;
             
-            // Reset conversion checkbox (new addition)
             document.getElementById('meterToFeetConversion').checked = false;
-            // NEW: Reset RVR/VIS toggle checkbox and hide fields
             let rvrVisBox = document.getElementById('toggleRvrVis');
             if(rvrVisBox) {
                 rvrVisBox.checked = false;
                 toggleRvrVisInputs();
             }
 
-            // Set calculator checkboxes: RESET TO DEFAULT 
-            // 1. Uncheck all Precision and Non-Precision
             [
                 ...PRECISION_PROC, 
                 ...NONPRECISION_PROC_250, 
@@ -550,26 +507,22 @@
                 if(el) el.checked = false;
             });
 
-            // 2. Uncheck Circling for a complete reset
             let circlingEl = document.getElementById('show_circling');
             if(circlingEl) circlingEl.checked = false;
 
             updateCalculatorVisibility();
-
-            // Optional: scroll to top, focus the first input, or reset selects if you want
             window.scrollTo(0,0);
         }
-        // NEW FUNCTION: Toggle RVR/VIS visibility and clear values if hidden
+
         function toggleRvrVisInputs() {
             const show = document.getElementById('toggleRvrVis').checked;
             document.querySelectorAll('.rvr-vis-input').forEach(input => {
                 input.style.display = show ? 'inline-block' : 'none';
-                if (!show) input.value = ''; // Clear the input so it stops affecting calculations
+                if (!show) input.value = '';
             });
-            calculate(); // Recalculate immediately after hiding/clearing
+            calculate();
         }
         
-        // ---- Top-right Page Zoom Controls ----
         let zoomLevel = 1;
         const minZoom = 0.7;
         const maxZoom = 2;
@@ -587,14 +540,12 @@
         window.addEventListener('DOMContentLoaded',()=>{
             document.body.style.zoom = zoomLevel;
             document.getElementById('zoom-indicator').innerText = `Zoom: ${(zoomLevel*100).toFixed(0)}%`;
-            calculate(); // Run initial calculation on load
+            calculate();
         });
         
-        // Advanced Summary Results with State logic
         function updateSummaryResults(results) {
             const useMeterConversion = document.getElementById('meterToFeetConversion').checked;
             
-            // Helper function to get the actual feet value for comparison, taking conversion into account
             function getFeetValueForCheck(rawValue, applyConversion) {
                  if (!rawValue && rawValue !== 0) return 0;
                  if (applyConversion) {
@@ -603,23 +554,16 @@
                  return rawValue;
             }
 
-            // Helper to parse result strings back to numbers for comparison
-            // Matches format like: "MDA: 500(400), RVR: 1000m" or "DA: 200(100), VIS: 1.5km"
             function parseResultString(str) {
                 if(!str) return null;
-                // Regex breakdown:
-                // Group 1: Altitude (DA/MDA)
-                // Group 2: Height (DH/MDH) in parens
-                // Group 3: Value
-                // Group 4: Unit (m or km)
                 const regex = /(?:DA|MDA|DH):\s*(\d+)\s*\((\d+)\),\s*(?:RVR|VIS):\s*([\d\.]+)(m|km)/i;
                 const match = str.match(regex);
                 if(!match) return null;
                 return {
-                    alt: parseInt(match[1]), // DA or MDA
-                    hgt: parseInt(match[2]), // DH or MDH
+                    alt: parseInt(match[1]),
+                    hgt: parseInt(match[2]),
                     vis: parseFloat(match[3]),
-                    visVal: parseFloat(match[3]), // Raw value for display/check
+                    visVal: parseFloat(match[3]),
                     unit: match[4].toLowerCase()
                 };
             }
@@ -636,23 +580,17 @@
             function isStateValue(proc, cat, value) {
                 let regulatoryMin = null;
 
-                // Grab raw input (which is what the user would have entered)
                 const dhRaw = parseFloat(document.getElementById(`${proc}_${cat}_dh`)?.value)||0;
                 const mdhRaw = parseFloat(document.getElementById(`${proc}_${cat}_mdh`)?.value)||0;
                 const rvrVisRaw = parseFloat(document.getElementById(`${proc}_${cat}_rvr`)?.value)||parseFloat(document.getElementById(`${proc}_${cat}_vis`)?.value)||0;
 
-                // Determine if DA/DH/MDA/MDH was converted for this specific check
                 const dhCheck = getFeetValueForCheck(dhRaw, useMeterConversion);
                 const mdhCheck = getFeetValueForCheck(mdhRaw, useMeterConversion);
                 
                 if (PRECISION_PROC.some(p=>p.code===proc)) {
-                    let dhRaised;
-                    if(proc === "lnavvnav") {
-                        dhRaised = Math.max(dhCheck, 250);
-                    } else {
-                        dhRaised = Math.max(dhCheck, 200);
-                    }
-                    regulatoryMin = getRVRFromTable(dhRaised, document.getElementById('lightType').value);
+                    let dhRaised = (proc === "lnavvnav") ? Math.max(dhCheck, 250) : Math.max(dhCheck, 200);
+                    const maxRVR = ['A','B'].includes(cat) ? 1500 : 2400;
+                    regulatoryMin = Math.min(getRVRFromTable(dhRaised, document.getElementById('lightType').value), maxRVR);
                 } else if (CIRCLING_PROC.some(p=>p.code===proc)) {
                     regulatoryMin = {A:1.5,B:1.6,C:2.4,D:3.6}[cat];
                 } else { // Non-Precision
@@ -662,7 +600,6 @@
                     let mdhUsed = mdhCheck > 0 ? Math.max(mdhCheck, minMDH) : minMDH;
                     if(mdhUsed > 1200) return value >= 5000;
                     
-                    // Replicate Non-CDFA check from main logic
                     const isNonCDFA = document.getElementById('noncdfa').checked;
                     const isNonCDFA_AB = document.getElementById('noncdfa_ab').checked;
                     const isNonCDFA_CD = document.getElementById('noncdfa_cd').checked;
@@ -677,15 +614,15 @@
 
                     const rvrTable = getRVRFromTable(mdhUsed, document.getElementById('lightType').value);
                     if(!isNonCDFAForCat(cat)) {
-                        regulatoryMin = Math.max(750, rvrTable);
+                        // UPDATED SUMMARY CHECK: Must cap standard RVR before determining if State value is higher
+                        const maxRVR = ['A','B'].includes(cat) ? 1500 : 2400;
+                        regulatoryMin = Math.max(750, Math.min(rvrTable, maxRVR));
                     } else {
                         regulatoryMin = Math.max(['A','B'].includes(cat)?1000:1200, rvrTable);
                     }
                 }
                 
                 if(rvrVisRaw == 0) return false;
-                
-                // Compare the user's RAW RVR/VIS input (no conversion for these fields) against the calculated regulatory minimum
                 return rvrVisRaw > regulatoryMin;
             }
             
@@ -700,10 +637,9 @@
                 CATS.forEach(cat=>{
                     const resultText = results[proc.code][cat] || '';
                     let highlight = '';
-                    let circlingNote = ''; // Variable to hold the warning text
+                    let circlingNote = '';
 
                     if(resultText) {
-                        // 1. Existing STATE Check
                         let m = /RVR:\s*(\d+(?:\.\d+)?)m/i.exec(resultText);
                         if(!m) m = /VIS:\s*(\d+(?:\.\d+)?)/i.exec(resultText);
                         if(m) {
@@ -714,32 +650,19 @@
                             }
                         }
 
-                        // 2. NEW LOGIC: Check vs Circling
-                        // Only applicable if this procedure is NOT circling, and Circling results exist for this CAT
                         if(proc.code !== 'circling' && results.circling && results.circling[cat]) {
                             const procData = parseResultString(resultText);
                             const circData = parseResultString(results.circling[cat]);
                             
                             if (procData && circData) {
                                 let warnings = [];
-                                
-                                // Compare Altitudes (DA/MDA vs Circling MDA)
-                                if (procData.alt > circData.alt) {
-                                    warnings.push("DA/MDA > Circling MDA");
-                                }
-                                // Compare Heights (DH/MDH vs Circling MDH)
-                                if (procData.hgt > circData.hgt) {
-                                     warnings.push("DH/MDH > Circling MDH");
-                                }
+                                if (procData.alt > circData.alt) warnings.push("DA/MDA > Circling MDA");
+                                if (procData.hgt > circData.hgt) warnings.push("DH/MDH > Circling MDH");
 
-                                // Compare Visibility
-                                // Normalize both to meters for comparison
                                 const procVisM = procData.unit === 'km' ? procData.vis * 1000 : procData.vis;
                                 const circVisM = circData.unit === 'km' ? circData.vis * 1000 : circData.vis;
 
-                                if (procVisM > circVisM) {
-                                    warnings.push("RVR/VIS > Circling VIS");
-                                }
+                                if (procVisM > circVisM) warnings.push("RVR/VIS > Circling VIS");
 
                                 if (warnings.length > 0) {
                                     circlingNote = `<span class="raise-circling-note">Raise Circling (${warnings.join(', ')})</span>`;
@@ -755,9 +678,8 @@
             document.getElementById('summaryStandardBox').className = 'state-indicator'+(anyState?'':' state-standard');
             document.getElementById('summaryStateBox').className = 'state-indicator'+(anyState?' state-state':'');
         }
-        // ==== AUTOCHECK: Select Only Circling By Default ====
+
         window.addEventListener('DOMContentLoaded', function() {
-            // Uncheck all main procedure checkboxes (precision, non-precision)
             [
                 ...PRECISION_PROC,
                 ...NONPRECISION_PROC_250,
@@ -767,10 +689,8 @@
                 var el = document.getElementById('show_'+proc.code);
                 if(el) el.checked = false;
             });
-            // Check only "Circling"
             var circ = document.getElementById('show_circling');
             if(circ) circ.checked = false;
-            // Update the UI accordingly
             if (typeof updateCalculatorVisibility === 'function') updateCalculatorVisibility();
         });
     </script>
