@@ -25,7 +25,7 @@
         .calculate-btn { background: #007bff; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin: 24px auto; display: block; }
         .calculate-btn:hover { background: #0056b3; }
         #summaryResults { border-top:1px solid #ccc; padding-top:20px; margin-top:26px;}
-        #summaryResults h2 { text-align:center;margin-bottom:8px;}
+        #summaryResults h2 { text-align:center;margin-bottom:12px;}
         #summaryResults h3 { margin-bottom:0;}
         .footer { text-align: center; margin-top: 26px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px; }
         
@@ -72,6 +72,103 @@
             border-top: 1px solid #ddd;
             color: #666;
             font-size: 14px;
+        }
+
+        .notes-options-panel {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            background: #f0f7ff;
+            padding: 12px 18px;
+            border-radius: 6px;
+            border: 1px solid #b8daff;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .notes-options-panel span {
+            font-weight: bold;
+            color: #004085;
+        }
+        .notes-options-panel label {
+            font-weight: bold;
+            color: #0056b3;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .notes-options-panel input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .proc-header-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+        .proc-note-input {
+            padding: 5px 10px;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            font-size: 0.9em;
+            flex: 1;
+            max-width: 360px;
+            background: #fff;
+        }
+        .proc-note-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 4px rgba(0,123,255,0.25);
+        }
+
+        .cat-note-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 5px;
+        }
+        .cat-note-input {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.88em;
+            width: 250px;
+            background: #fff;
+        }
+        .cat-note-input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .additional-notes-block {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px dashed #bbb;
+        }
+        .additional-notes-block label {
+            font-weight: bold;
+            color: #333;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .additional-notes-block textarea {
+            width: 100%;
+            min-height: 90px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        .additional-notes-block textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 4px rgba(0,123,255,0.25);
         }
     </style>
 </head>
@@ -196,6 +293,14 @@
         const NONPRECISION_PROC_350 = [{ code: 'ndb', name: 'NDB' }];
         const CIRCLING_PROC = [{ code: 'circling', name: 'Circling' }];
         const CATS = ['A','B','C','D'];
+
+        // Global state storage for dynamically generated notes
+        let lastCalculatedResults = {};
+        let notesState = {
+            proc: {},
+            cat: {},
+            additional: ''
+        };
 
         function renderProcedureCheckboxes() {
             let html = "";
@@ -354,10 +459,9 @@
                 summary.circling = {};
                 CATS.forEach(cat=>{
                     const mdaRaw = parseFloat(document.getElementById(`circling_${cat}_mda`).value)||0;
-                    const mdhRaw = parseFloat(document.getElementById(`circling_${cat}_mdh`).value)||0;
                     const visRaw = parseFloat(document.getElementById(`circling_${cat}_vis`).value)||0;
 
-                    const parsed = processAltHgt(mdaRaw, mdhRaw, adElev);
+                    const parsed = processAltHgt(mdaRaw, 0, adElev);
 
                     if (parsed.hasInput || visRaw > 0) {
                         const res = `MDA: ${parsed.alt}(${parsed.hgt}), VIS: ${visRaw}km`;
@@ -369,6 +473,7 @@
                     }
                 });
             }
+            lastCalculatedResults = summary;
             updateSummaryResults(summary);
         }
         
@@ -376,7 +481,7 @@
             if(e.target.type==='number' || e.target.id === 'meterToFeetConversion') calculate(); 
         });
         document.addEventListener('change',function(e){
-            if(['radio','checkbox','select-one'].includes(e.target.type)) {
+            if(['radio','checkbox','select-one'].includes(e.target.type) && !e.target.id.startsWith('chkNote_')) {
                 updateCalculatorVisibility();
                 calculate();
             }
@@ -386,6 +491,9 @@
             document.querySelectorAll('input[type="number"], input[type="text"]').forEach(el => el.value = '');
             document.querySelectorAll('.result').forEach(el => el.innerText = '');
             document.getElementById('summaryResults').innerHTML = '';
+
+            notesState = { proc: {}, cat: {}, additional: '' };
+            lastCalculatedResults = {};
 
             document.getElementById('cdfa').checked = true;
             document.getElementById('noncdfa').checked = false;
@@ -440,7 +548,30 @@
             document.getElementById('zoom-indicator').innerText = `Zoom: ${(zoomLevel*100).toFixed(0)}%`;
         }
 
+        function saveNotesState() {
+            document.querySelectorAll('.proc-note-input').forEach(el => {
+                const code = el.getAttribute('data-proc');
+                if(code) notesState.proc[code] = el.value;
+            });
+
+            document.querySelectorAll('.cat-note-input').forEach(el => {
+                const procCatKey = el.getAttribute('data-proccat');
+                if(procCatKey) notesState.cat[procCatKey] = el.value;
+            });
+
+            const addNotesEl = document.getElementById('txtAdditionalNotes');
+            if(addNotesEl) {
+                notesState.additional = addNotesEl.value;
+            }
+        }
+
         function updateSummaryResults(results) {
+            saveNotesState();
+
+            const procNotesChecked = document.getElementById('chkNote_proc')?.checked || false;
+            const catNotesChecked = document.getElementById('chkNote_cat')?.checked || false;
+            const additionalNotesChecked = document.getElementById('chkNote_additional')?.checked || false;
+
             const blocks = [
                 ...PRECISION_PROC,
                 ...NONPRECISION_PROC_250,
@@ -453,16 +584,54 @@
             html += `<span class="state-indicator">AIA STATE VALUE AS-IS</span>`;
             html += `</div>`;
             html += `<h2>Summary of Results (AIA Version)</h2>`;
-            
+
+            // Notes Options Bar inside Summary
+            html += `<div class="notes-options-panel">`;
+            html += `<span>Notes Options:</span>`;
+            html += `<label><input type="checkbox" id="chkNote_proc" ${procNotesChecked ? 'checked' : ''} onchange="updateSummaryResults(lastCalculatedResults)"> Procedure Notes</label>`;
+            html += `<label><input type="checkbox" id="chkNote_cat" ${catNotesChecked ? 'checked' : ''} onchange="updateSummaryResults(lastCalculatedResults)"> Categories Notes</label>`;
+            html += `<label><input type="checkbox" id="chkNote_additional" ${additionalNotesChecked ? 'checked' : ''} onchange="updateSummaryResults(lastCalculatedResults)"> Additional Notes</label>`;
+            html += `</div>`;
+
             blocks.forEach(proc=>{
                 if(!results[proc.code]) return;
-                html += `<div style="margin-bottom:14px;"><h3>${proc.name}</h3>`;
+                
+                const procNoteValue = notesState.proc[proc.code] || '';
+
+                html += `<div style="margin-bottom:18px;">`;
+                html += `<div class="proc-header-row">`;
+                html += `<h3 style="margin:0;">${proc.name}</h3>`;
+                
+                if (procNotesChecked) {
+                    html += `<input type="text" class="proc-note-input" data-proc="${proc.code}" placeholder="Procedure note for ${proc.name}..." value="${procNoteValue.replace(/"/g, '&quot;')}" oninput="saveNotesState()">`;
+                }
+                
+                html += `</div>`;
+
                 CATS.forEach(cat=>{
                     const resultText = results[proc.code][cat] || '';
+                    const catKey = `${proc.code}_${cat}`;
+                    const catNoteValue = notesState.cat[catKey] || '';
+
+                    html += `<div class="cat-note-row">`;
                     html += `<div>CAT ${cat}: <span>${resultText || 'N/A'}</span></div>`;
+                    
+                    if (catNotesChecked) {
+                        html += `<input type="text" class="cat-note-input" data-proccat="${catKey}" placeholder="CAT ${cat} note..." value="${catNoteValue.replace(/"/g, '&quot;')}" oninput="saveNotesState()">`;
+                    }
+                    
+                    html += `</div>`;
                 });
                 html += `</div>`;
             });
+
+            if (additionalNotesChecked) {
+                html += `<div class="additional-notes-block">`;
+                html += `<label for="txtAdditionalNotes">Additional Notes:</label>`;
+                html += `<textarea id="txtAdditionalNotes" placeholder="Type any additional notes or remarks here..." oninput="saveNotesState()">${notesState.additional || ''}</textarea>`;
+                html += `</div>`;
+            }
+
             document.getElementById('summaryResults').innerHTML = html;
         }
 
