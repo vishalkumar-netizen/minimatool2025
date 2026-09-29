@@ -1,5 +1,64 @@
-## Aviation Minima Tool
+## Minima Calculator
 
+Minima Calculator - Project Changelog & Updates
+
+Date: September 29, 2026
+
+License: GNU GPLv3
+
+🚀 Overview of Today's Updates
+
+Today’s release introduces the dedicated AIA Version (As-Is Aerodrome Minimums Tool), fixes critical execution bugs, updates header navigation controls, and introduces an interactive Notes System inside the summary results view.
+
+📌 Key Enhancements & Features
+
+1. AIA Version Implementation (Pass-Through Mode)
+
+Pure Pass-Through Logic: Bypasses standard regulatory minimum capping, DH elevation adjustments (e.g., forcing 200/250/300/350 ft), CDFA/NFC rules, and automatic RVR lookup table overrides.
+
+As-Is Data Processing: Output DA, MDA, DH, MDH, RVR, and VIS values match the user-provided inputs directly.
+
+Meter-to-Feet Unit Conversion: Retained option allowing values entered in meters to convert into feet using Math.ceil(meters * 3.28084).
+
+2. Interactive Summary Notes System
+
+Summary Notes Toggle: Added a dynamic checkbox (Enable Notes in Summary of Results) within the results section.
+
+Procedure & Category Annotations: Users can enter custom text notes next to individual procedures (e.g., ILS, LOC, VOR) and specific aircraft categories (CAT A, B, C, D).
+
+General Remarks Field: Added a multi-line text area at the base of the summary section for overall operational remarks or crew briefings.
+
+State Preservation: Note inputs automatically persist across live calculations so typing is preserved during input updates.
+
+3. UI, Navigation & Layout Upgrades
+
+Floating Header Navigation: Added clean SVG-icon floating buttons for seamless app navigation:
+
+🏠 Home Button: Top-left fixed link pointing to index.html.
+
+🚁 Helicopter Tool (Beta): Top-right link.
+
+📄 AIA Version Tool: Top-right link below the zoom controls.
+
+Unified Styling: Updated spacing, responsive card grid layout, input groupings, and color contrast.
+
+Zoom Controls: Integrated quick-access floating zoom controls (+, -) with an active percentage indicator.
+
+4. Code Maintenance & Bug Fixes
+
+Restored Missing Functions: Re-implemented missing procedure rendering logic (renderProcedureCheckboxes) to fix runtime JavaScript execution errors.
+
+Fixed Code Truncation: Re-supplied truncated RVR_TABLE_RANGES lookup definitions.
+
+State Management: Fixed input clear routines to reset procedure checkboxes, notes state, unit conversions, and results cleanly.
+
+📁 Updated Files
+
+index.html - Primary Minima Calculator (AIA State As-Is Tool with Notes functionality).
+
+minima_calculator_aia_version.html - Linked standalone AIA version.
+
+README.md - Documentation & project update summary.
 #### Version: Latest (2/11/26)
 
 
