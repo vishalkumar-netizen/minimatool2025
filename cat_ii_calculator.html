@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAT II Calculator - Team Minima</title>
+    <!-- Tailwind CSS for modern responsive layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons for UI graphics -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Excel Table Visual Styling */
+        table.excel-table {
+            border-collapse: collapse;
+            width: 100%;
+            border: 2px solid #000000;
+            background-color: #ffffff;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        table.excel-table th, table.excel-table td {
+            border: 1px solid #000000;
+            padding: 6px 10px;
+            vertical-align: middle;
+            height: 40px;
+            font-size: 0.95rem;
+        }
+        table.excel-table th {
+            background-color: #000000;
+            color: #ffffff;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.15rem;
+            letter-spacing: 0.025em;
+        }
+        .header-col {
+            background-color: #ffffff;
+            font-weight: 600;
+            color: #1f2937;
+            width: 200px;
+            white-space: nowrap;
+        }
+        /* Excel green input cells */
+        .input-cell {
+            background-color: #e2f0d9 !important; /* Soft Excel Green */
+            padding: 0 !important;
+            position: relative;
+        }
+        .input-cell input, .input-cell select {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: transparent;
+            padding: 6px 10px;
+            box-sizing: border-box;
+            outline: none;
+            font-weight: 600;
+            color: #111827;
+        }
+        .input-cell input {
+            text-align: right;
+        }
+        .input-cell input:focus, .input-cell select:focus {
+            background-color: #d0e7c2;
+            box-shadow: inset 0 0 0 2px #22c55e;
+        }
+        /* Excel calculated cells (Yellow/Amber) */
+        .calc-cell {
+            background-color: #fff2cc !important;
+            text-align: right;
+            font-weight: 600;
+            color: #111827;
+        }
+        .header-row {
+            background-color: #f2f2f2;
+            font-weight: 700;
+            text-align: center;
+        }
+        .cat-header {
+            font-weight: 800;
+            text-align: center;
+            font-size: 1.05rem;
+            background-color: #e5e7eb;
+            width: 15%;
+        }
+        /* Result Rows (Bright Yellow) */
+        .result-row {
+            background-color: #ffff00 !important;
+            font-weight: 800;
+        }
+        .result-row td {
+            font-weight: 800;
+        }
+        .distance-val {
+            font-weight: 700;
+            text-align: right;
+            background-color: #ffffff;
+        }
+
+        /* Prevent number input spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-gray-800 min-h-screen flex flex-col justify-between p-3 sm:p-6">
+
+    <!-- Top Header Bar -->
+    <header class="max-w-5xl mx-auto w-full bg-white rounded-xl shadow-md p-4 mb-6 flex flex-wrap items-center justify-between gap-4 border border-slate-200">
+        <div class="flex items-center space-x-3">
+            <div class="bg-black text-white p-2.5 rounded-lg">
+                <i class="fa-solid fa-plane-arrival text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 leading-tight">CAT II Calculator</h1>
+                <p class="text-xs sm:text-sm text-gray-500 font-medium">Created by <span class="font-semibold text-gray-700">Vishal K Basson</span> (Team Minima)</p>
+            </div>
+        </div>
+
+        <!-- Top Right Home Button -->
+        <a href="index.html" class="inline-flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2 rounded-lg transition duration-200 shadow hover:shadow-md text-sm">
+            <i class="fa-solid fa-house"></i>
+            <span>Home</span>
+        </a>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-5xl mx-auto w-full flex-grow">
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-2 sm:p-5 overflow-x-auto">
+            <table class="excel-table">
+                <thead>
+                    <tr>
+                        <th colspan="6">CAT II (Distance Calculator)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- RDH Input Row with Dropdown -->
+                    <tr>
+                        <td class="header-col">RDH Input</td>
+                        <td class="input-cell" colspan="2">
+                            <div class="flex items-center h-full">
+                                <input type="number" id="rdhInput" placeholder="0" step="any" oninput="calculate()" class="w-2/3 border-r border-gray-300">
+                                <select id="rdhUnit" onchange="calculate()" class="w-1/3 text-xs font-semibold bg-green-50 hover:bg-green-100 cursor-pointer text-gray-700">
+                                    <option value="meter" selected>Meter (m)</option>
+                                    <option value="feet">Feet (ft)</option>
+                                </select>
+                            </div>
+                        </td>
+                        <td colspan="3" class="bg-slate-50"></td>
+                    </tr>
+                    <tr>
+                        <td class="header-col">RDH (Adjusted)</td>
+                        <td class="calc-cell" id="rdhAdjusted" colspan="2">0</td>
+                        <td colspan="3" class="bg-slate-50"></td>
+                    </tr>
+                    <tr>
+                        <td class="header-col">Angle</td>
+                        <td class="input-cell" colspan="2">
+                            <input type="number" id="angle" value="3" step="any" oninput="calculate()">
+                        </td>
+                        <td colspan="3" class="bg-slate-50"></td>
+                    </tr>
+
+                    <!-- Category Headers -->
+                    <tr class="header-row">
+                        <td class="header-col font-bold text-black">CAT</td>
+                        <td class="cat-header">A</td>
+                        <td class="cat-header">B</td>
+                        <td class="cat-header">C</td>
+                        <td class="cat-header">D</td>
+                        <td class="cat-header">DL</td>
+                    </tr>
+
+                    <!-- DH Inputted Row -->
+                    <tr>
+                        <td class="header-col">DH (Inputed)</td>
+                        <td class="input-cell"><input type="number" id="dhInputA" placeholder="0" step="any" oninput="calculate()"></td>
+                        <td class="input-cell"><input type="number" id="dhInputB" placeholder="0" step="any" oninput="calculate()"></td>
+                        <td class="input-cell"><input type="number" id="dhInputC" placeholder="0" step="any" oninput="calculate()"></td>
+                        <td class="input-cell"><input type="number" id="dhInputD" placeholder="0" step="any" oninput="calculate()"></td>
+                        <td class="input-cell"><input type="number" id="dhInputDL" placeholder="0" step="any" oninput="calculate()"></td>
+                    </tr>
+
+                    <!-- DH Adjusted Row -->
+                    <tr>
+                        <td class="header-col">DH (Adjusted)</td>
+                        <td class="calc-cell" id="dhAdjustedA">100</td>
+                        <td class="calc-cell" id="dhAdjustedB">100</td>
+                        <td class="calc-cell" id="dhAdjustedC">100</td>
+                        <td class="calc-cell" id="dhAdjustedD">100</td>
+                        <td class="calc-cell" id="dhAdjustedDL">100</td>
+                    </tr>
+
+                    <!-- Distance Row -->
+                    <tr>
+                        <td class="header-col">Distance</td>
+                        <td class="distance-val" id="distanceA">582</td>
+                        <td class="distance-val" id="distanceB">582</td>
+                        <td class="distance-val" id="distanceC">582</td>
+                        <td class="distance-val" id="distanceD">582</td>
+                        <td class="distance-val" id="distanceDL">582</td>
+                    </tr>
+
+                    <!-- PAT C Row -->
+                    <tr>
+                        <td class="header-col">PAT C <span class="text-xs font-normal text-gray-600">(Values in Feet)</span></td>
+                        <td class="input-cell"><input type="number" id="patcA" placeholder="0" step="any" oninput="calculate()"></td>
+                        <td class="input-cell"><input type="number" id="patcB" placeholder="0" step="any" oninput="calculate()"></td>
+                        <td class="input-cell"><input type="number" id="patcC" placeholder="0" step="any" oninput="calculate()"></td>
+                        <td class="input-cell"><input type="number" id="patcD" placeholder="0" step="any" oninput="calculate()"></td>
+                        <td class="input-cell"><input type="number" id="patcDL" placeholder="0" step="any" oninput="calculate()"></td>
+                    </tr>
+
+                    <!-- RA Row -->
+                    <tr class="result-row">
+                        <td class="header-col font-bold">RA</td>
+                        <td class="text-right" id="raA">100</td>
+                        <td class="text-right" id="raB">100</td>
+                        <td class="text-right" id="raC">100</td>
+                        <td class="text-right" id="raD">100</td>
+                        <td class="text-right" id="raDL">100</td>
+                    </tr>
+
+                    <!-- RVR Row -->
+                    <tr class="result-row">
+                        <td class="header-col font-bold">RVR</td>
+                        <td class="text-right" id="rvrA">300</td>
+                        <td class="text-right" id="rvrB">300</td>
+                        <td class="text-right" id="rvrC">300</td>
+                        <td class="text-right" id="rvrD">300</td>
+                        <td class="text-right" id="rvrDL">300</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- User Notes Section -->
+        <section class="mt-8 bg-white rounded-xl shadow-md border border-slate-200 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa-regular fa-note-sticky text-amber-500"></i>
+                    <span>Notes & Remarks</span>
+                </h2>
+                <span class="text-xs text-gray-400">Auto-saved locally</span>
+            </div>
+            <textarea id="userNotes" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-800 focus:border-slate-800 outline-none text-sm text-gray-800 placeholder-gray-400 transition" placeholder="Add your operational notes, observations, or airport specific details here..."></textarea>
+            <div class="mt-2 flex justify-between items-center text-xs text-gray-500">
+                <span>Anyone using this tool can add/edit notes below.</span>
+                <button onclick="clearNotes()" class="text-red-500 hover:text-red-700 font-medium transition">Clear Notes</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Page Footer -->
+    <footer class="max-w-5xl mx-auto w-full text-center mt-8 pt-4 border-t border-slate-200 text-xs text-gray-500">
+        <p>CAT II Distance Calculator &copy; Team Minima | Created by <span class="font-semibold text-gray-700">Vishal K Basson</span></p>
+    </footer>
+
+    <script>
+        /* Main calculation function triggered on user input or unit change */
+        function calculate() {
+            // 1. RDH Calculations
+            const rdhInputValue = parseFloat(document.getElementById('rdhInput').value) || 0;
+            const rdhUnit = document.getElementById('rdhUnit').value;
+
+            let rdhAdjusted = 0;
+
+            if (rdhUnit === 'meter') {
+                // If Meter: E3 = Meter * 3.28084, E4 = ROUNDUP(E3, 0)
+                const feetConverted = rdhInputValue * 3.28084;
+                rdhAdjusted = Math.ceil(feetConverted);
+            } else {
+                // If Feet: direct feet input adjusted
+                rdhAdjusted = Math.round(rdhInputValue);
+            }
+
+            document.getElementById('rdhAdjusted').innerText = rdhAdjusted;
+
+            // Angle D6 (default = 3)
+            const angle = parseFloat(document.getElementById('angle').value) || 3;
+
+            // Categories A, B, C, D, DL
+            const categories = ['A', 'B', 'C', 'D', 'DL'];
+
+            categories.forEach(cat => {
+                // 2. DH Adjusted Calculation: DH output = MAX(100, DH Input)
+                const dhInput = parseFloat(document.getElementById(`dhInput${cat}`).value) || 0;
+                const dhAdjusted = Math.max(100, dhInput);
+                document.getElementById(`dhAdjusted${cat}`).innerText = dhAdjusted;
+
+                // 3. Distance Calculation: =(DH_Adjusted - RDH_Adjusted)/(3.2808*TAN(RADIANS(Angle)))
+                let distance = 0;
+                if (angle !== 0) {
+                    const radians = angle * (Math.PI / 180);
+                    const tanVal = Math.tan(radians);
+                    distance = (dhAdjusted - rdhAdjusted) / (3.2808 * tanVal);
+                }
+                document.getElementById(`distance${cat}`).innerText = Math.round(distance);
+
+                // 4. RA Calculation: RA = DH_Adjusted + PAT_C
+                const patcInput = parseFloat(document.getElementById(`patc${cat}`).value) || 0;
+                const ra = dhAdjusted + patcInput;
+                document.getElementById(`ra${cat}`).innerText = ra;
+
+                // 5. RVR Calculation Rule:
+                // If 100 <= DH <= 120 -> 300
+                // If 121 <= DH <= 140 -> 400
+                // If DH > 140 -> 450 (includes all DH above 140 and > 200)
+                let rvr = "";
+                if (dhAdjusted >= 100 && dhAdjusted <= 120) {
+                    rvr = 300;
+                } else if (dhAdjusted >= 121 && dhAdjusted <= 140) {
+                    rvr = 400;
+                } else if (dhAdjusted > 140) {
+                    rvr = 450;
+                }
+                document.getElementById(`rvr${cat}`).innerText = rvr;
+            });
+        }
+
+        /* Notes local storage handler */
+        const notesElement = document.getElementById('userNotes');
+        
+        // Load saved notes on startup
+        if (localStorage.getItem('cat2_calculator_notes')) {
+            notesElement.value = localStorage.getItem('cat2_calculator_notes');
+        }
+
+        // Save notes on keyup
+        notesElement.addEventListener('input', function() {
+            localStorage.setItem('cat2_calculator_notes', this.value);
+        });
+
+        function clearNotes() {
+            notesElement.value = '';
+            localStorage.removeItem('cat2_calculator_notes');
+        }
+
+        // Initial calculation run
+        window.onload = function() {
+            calculate();
+        };
+    </script>
+</body>
+</html>
