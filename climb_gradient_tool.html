@@ -77,9 +77,14 @@
             </div>
             <div class="bg-white border border-amber-300 px-5 py-2.5 rounded-lg shadow-sm text-right w-full sm:w-auto flex items-center justify-between sm:justify-end space-x-3">
                 <span class="text-xs font-semibold text-gray-500 uppercase">Procedure Gradient:</span>
-                <div>
-                    <span id="procedureResult" class="mono-font text-2xl font-bold text-amber-900">0.1</span>
-                    <span class="mono-font text-lg font-semibold text-amber-800 ml-0.5">%</span>
+                <div class="flex items-center space-x-2">
+                    <div>
+                        <span id="procedureResult" class="mono-font text-2xl font-bold text-amber-900">0.1</span>
+                        <span class="mono-font text-lg font-semibold text-amber-800 ml-0.5">%</span>
+                    </div>
+                    <button onclick="copySingleValue('procedureResult', '%')" title="Copy Procedure Gradient" class="p-1.5 text-amber-700 hover:text-amber-900 hover:bg-amber-100 rounded transition text-xs">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -95,9 +100,14 @@
                     <div>
                         <span class="text-sm font-medium text-gray-700">Percentage Gradient</span>
                     </div>
-                    <div class="text-right">
-                        <span id="outputPercent" class="mono-font text-xl font-bold text-gray-900">0.02</span>
-                        <span class="mono-font text-sm text-gray-600 ml-1">%</span>
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <span id="outputPercent" class="mono-font text-xl font-bold text-gray-900">0.02</span>
+                            <span class="mono-font text-sm text-gray-600 ml-1">%</span>
+                        </div>
+                        <button onclick="copySingleValue('outputPercent', '%')" title="Copy Percentage" class="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200 rounded transition text-xs">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -106,9 +116,14 @@
                     <div>
                         <span class="text-sm font-medium text-gray-700">Feet per Nautical Mile</span>
                     </div>
-                    <div class="text-right">
-                        <span id="outputFtNm" class="mono-font text-xl font-bold text-gray-900">1</span>
-                        <span class="mono-font text-sm text-gray-600 ml-1">ft/nm</span>
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <span id="outputFtNm" class="mono-font text-xl font-bold text-gray-900">1</span>
+                            <span class="mono-font text-sm text-gray-600 ml-1">ft/nm</span>
+                        </div>
+                        <button onclick="copySingleValue('outputFtNm', 'ft/nm')" title="Copy ft/nm" class="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200 rounded transition text-xs">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -117,9 +132,14 @@
                     <div>
                         <span class="text-sm font-medium text-gray-700">Angle in Degrees</span>
                     </div>
-                    <div class="text-right">
-                        <span id="outputDegree" class="mono-font text-xl font-bold text-gray-900">0.01</span>
-                        <span class="mono-font text-sm text-gray-600 ml-1">&deg;</span>
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right">
+                            <span id="outputDegree" class="mono-font text-xl font-bold text-gray-900">0.01</span>
+                            <span class="mono-font text-sm text-gray-600 ml-1">&deg;</span>
+                        </div>
+                        <button onclick="copySingleValue('outputDegree', '°')" title="Copy Degrees" class="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200 rounded transition text-xs">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -128,7 +148,7 @@
             <div class="mt-5 pt-4 border-t border-gray-200 flex justify-end">
                 <button onclick="copyResults()" class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-xs font-medium transition flex items-center space-x-1.5 shadow-sm">
                     <i class="fa-regular fa-copy"></i>
-                    <span>Copy Results</span>
+                    <span>Copy All Results</span>
                 </button>
             </div>
         </div>
@@ -161,7 +181,6 @@
 
             let i28 = 0, i29 = 0, i30 = 0;
 
-            // Excel Rules implementation based on unit selection
             if (unit === '%') {
                 i28 = d26;
                 i29 = (d26 / 100) * 6076.12;
@@ -176,7 +195,6 @@
                 i30 = d26;
             }
 
-            // Excel Rounding Rule: =IF(I>=100,ROUND(I,0),ROUND(I,2))
             const excelRound = (val) => {
                 if (isNaN(val)) return 0;
                 return val >= 100 ? Math.round(val) : Number(val.toFixed(2));
@@ -185,12 +203,8 @@
             const d28 = excelRound(i28);
             const d29 = excelRound(i29);
             const d30 = excelRound(i30);
-
-            // Procedure Rounding Rule (Ceiling to next tenth % for obstacle clearance)
-            // e.g., 3.21 to 3.29 -> 3.3; 3.91 to 3.99 -> 4.0
             const procedureVal = (Math.ceil(i28 * 10) / 10).toFixed(1);
 
-            // Update UI
             document.getElementById('outputPercent').innerText = d28;
             document.getElementById('outputFtNm').innerText = d29;
             document.getElementById('outputDegree').innerText = d30;
@@ -209,7 +223,7 @@
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(textToCopy).then(() => {
-                    showToast();
+                    showToast('Results copied to clipboard!');
                 }).catch(() => {
                     fallbackCopy(textToCopy);
                 });
@@ -218,33 +232,47 @@
             }
         }
 
-        function fallbackCopy(text) {
+        function copySingleValue(elementId, unitSymbol) {
+            const val = document.getElementById(elementId).innerText;
+            const textToCopy = `${val}${unitSymbol}`;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showToast('Value copied to clipboard!');
+                }).catch(() => {
+                    fallbackCopy(textToCopy, 'Value copied to clipboard!');
+                });
+            } else {
+                fallbackCopy(textToCopy, 'Value copied to clipboard!');
+            }
+        }
+
+        function fallbackCopy(text, message = 'Results copied to clipboard!') {
             const textarea = document.createElement('textarea');
             textarea.value = text;
             document.body.appendChild(textarea);
             textarea.select();
             try {
                 document.execCommand('copy');
-                showToast();
+                showToast(message);
             } catch (err) {
                 console.error('Failed to copy', err);
             }
             document.body.removeChild(textarea);
         }
 
-        function showToast() {
+        function showToast(message = 'Results copied to clipboard!') {
             const toast = document.getElementById('toast');
+            toast.querySelector('span').innerText = message;
             toast.classList.remove('translate-y-20', 'opacity-0');
             setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0');
             }, 2500);
         }
 
-        // Event Listeners
         document.getElementById('inputVal').addEventListener('input', performCalculations);
         document.getElementById('selectUnit').addEventListener('change', performCalculations);
 
-        // Initial run on load
         window.onload = function() {
             performCalculations();
         };
