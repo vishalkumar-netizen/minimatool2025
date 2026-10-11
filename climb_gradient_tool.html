@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climb Gradient Tool</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col justify-between selection:bg-gray-800 selection:text-white">
+
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-lg bg-gray-800 text-white flex items-center justify-center shadow">
+                    <i class="fa-solid fa-plane-departure text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-tight text-gray-900">Climb Gradient Tool</h1>
+                    <p class="text-xs text-gray-500">Aviation Conversion Utility</p>
+                </div>
+            </div>
+            <!-- Home Link to GitHub index.html -->
+            <a href="index.html" class="px-3.5 py-1.5 bg-white hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg border border-gray-300 shadow-sm transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-house text-gray-500"></i>
+                <span>Home</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-8 flex-grow w-full space-y-6">
+        
+        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 flex items-center">
+                <i class="fa-solid fa-sliders text-gray-500 mr-2"></i> Input Parameters
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="inputVal" class="block text-xs font-medium text-gray-600 mb-1">Gradient Value</label>
+                    <input type="number" id="inputVal" step="any" value="1" 
+                        class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-900 mono-font text-base focus:outline-none focus:border-gray-500 focus:bg-white transition-all">
+                </div>
+
+                <div>
+                    <label for="selectUnit" class="block text-xs font-medium text-gray-600 mb-1">Unit Selection</label>
+                    <select id="selectUnit" 
+                        class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3.5 py-2.5 text-gray-900 font-medium text-sm focus:outline-none focus:border-gray-500 focus:bg-white transition-all">
+                        <option value="%">% (Percentage)</option>
+                        <option value="ft/nm" selected>ft/nm (Feet per Nautical Mile)</option>
+                        <option value="degree">degree (°)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-300 rounded-xl p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-3 text-amber-900">
+                <div class="w-10 h-10 rounded-full bg-amber-200 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-700"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold tracking-tight">Use this for Procedure</h3>
+                    <p class="text-xs text-amber-700">Rounded up to next tenth % for obstacle clearance</p>
+                </div>
+            </div>
+            <div class="bg-white border border-amber-300 px-5 py-2.5 rounded-lg shadow-sm text-right w-full sm:w-auto flex items-center justify-between sm:justify-end space-x-3">
+                <span class="text-xs font-semibold text-gray-500 uppercase">Procedure Gradient:</span>
+                <div>
+                    <span id="procedureResult" class="mono-font text-2xl font-bold text-amber-900">0.1</span>
+                    <span class="mono-font text-lg font-semibold text-amber-800 ml-0.5">%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+            <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4 flex items-center">
+                <i class="fa-solid fa-square-poll-vertical text-gray-500 mr-2"></i> Converted Results
+            </h2>
+
+            <div class="space-y-3">
+                <!-- Percentage Output -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3.5 flex items-center justify-between">
+                    <div>
+                        <span class="text-sm font-medium text-gray-700">Percentage Gradient</span>
+                    </div>
+                    <div class="text-right">
+                        <span id="outputPercent" class="mono-font text-xl font-bold text-gray-900">0.02</span>
+                        <span class="mono-font text-sm text-gray-600 ml-1">%</span>
+                    </div>
+                </div>
+
+                <!-- Feet per Nautical Mile Output -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3.5 flex items-center justify-between">
+                    <div>
+                        <span class="text-sm font-medium text-gray-700">Feet per Nautical Mile</span>
+                    </div>
+                    <div class="text-right">
+                        <span id="outputFtNm" class="mono-font text-xl font-bold text-gray-900">1</span>
+                        <span class="mono-font text-sm text-gray-600 ml-1">ft/nm</span>
+                    </div>
+                </div>
+
+                <!-- Degree Output -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3.5 flex items-center justify-between">
+                    <div>
+                        <span class="text-sm font-medium text-gray-700">Angle in Degrees</span>
+                    </div>
+                    <div class="text-right">
+                        <span id="outputDegree" class="mono-font text-xl font-bold text-gray-900">0.01</span>
+                        <span class="mono-font text-sm text-gray-600 ml-1">&deg;</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="mt-5 pt-4 border-t border-gray-200 flex justify-end">
+                <button onclick="copyResults()" class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-xs font-medium transition flex items-center space-x-1.5 shadow-sm">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Copy Results</span>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 py-4 text-center text-xs text-gray-500">
+        <p>Created by V K Basson &bull; ClimbGradient.html</p>
+    </footer>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-gray-900 text-white px-3.5 py-2 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center space-x-2 text-xs z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span>Results copied to clipboard!</span>
+    </div>
+
+    <script>
+        function performCalculations() {
+            const valInput = document.getElementById('inputVal').value;
+            const unit = document.getElementById('selectUnit').value;
+            const d26 = parseFloat(valInput);
+
+            if (isNaN(d26)) {
+                document.getElementById('outputPercent').innerText = '0.00';
+                document.getElementById('outputFtNm').innerText = '0.00';
+                document.getElementById('outputDegree').innerText = '0.00';
+                document.getElementById('procedureResult').innerText = '0.0';
+                return;
+            }
+
+            let i28 = 0, i29 = 0, i30 = 0;
+
+            // Excel Rules implementation based on unit selection
+            if (unit === '%') {
+                i28 = d26;
+                i29 = (d26 / 100) * 6076.12;
+                i30 = Math.atan(d26 / 100) * (180 / Math.PI);
+            } else if (unit === 'ft/nm') {
+                i28 = (d26 / 6076.12) * 100;
+                i29 = d26;
+                i30 = Math.atan(d26 / 6076.12) * (180 / Math.PI);
+            } else if (unit === 'degree') {
+                i28 = Math.tan(d26 * Math.PI / 180) * 100;
+                i29 = Math.tan(d26 * Math.PI / 180) * 6076.12;
+                i30 = d26;
+            }
+
+            // Excel Rounding Rule: =IF(I>=100,ROUND(I,0),ROUND(I,2))
+            const excelRound = (val) => {
+                if (isNaN(val)) return 0;
+                return val >= 100 ? Math.round(val) : Number(val.toFixed(2));
+            };
+
+            const d28 = excelRound(i28);
+            const d29 = excelRound(i29);
+            const d30 = excelRound(i30);
+
+            // Procedure Rounding Rule (Ceiling to next tenth % for obstacle clearance)
+            // e.g., 3.21 to 3.29 -> 3.3; 3.91 to 3.99 -> 4.0
+            const procedureVal = (Math.ceil(i28 * 10) / 10).toFixed(1);
+
+            // Update UI
+            document.getElementById('outputPercent').innerText = d28;
+            document.getElementById('outputFtNm').innerText = d29;
+            document.getElementById('outputDegree').innerText = d30;
+            document.getElementById('procedureResult').innerText = procedureVal;
+        }
+
+        function copyResults() {
+            const d28 = document.getElementById('outputPercent').innerText;
+            const d29 = document.getElementById('outputFtNm').innerText;
+            const d30 = document.getElementById('outputDegree').innerText;
+            const proc = document.getElementById('procedureResult').innerText;
+            const unit = document.getElementById('selectUnit').value;
+            const inputVal = document.getElementById('inputVal').value;
+
+            const textToCopy = `Climb Gradient Conversion\nInput: ${inputVal} ${unit}\n- Procedure Gradient: ${proc}%\n- Percentage (%): ${d28}%\n- Feet per NM (ft/nm): ${d29}\n- Degree (°): ${d30}°`;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showToast();
+                }).catch(() => {
+                    fallbackCopy(textToCopy);
+                });
+            } else {
+                fallbackCopy(textToCopy);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast();
+            } catch (err) {
+                console.error('Failed to copy', err);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        // Event Listeners
+        document.getElementById('inputVal').addEventListener('input', performCalculations);
+        document.getElementById('selectUnit').addEventListener('change', performCalculations);
+
+        // Initial run on load
+        window.onload = function() {
+            performCalculations();
+        };
+    </script>
+</body>
+</html>
