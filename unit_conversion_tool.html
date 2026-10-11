@@ -30,6 +30,15 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        /* Hide standard spinner arrows on number inputs for clean spreadsheet appearance */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none;
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
     </style>
 </head>
 <body class="min-h-full flex flex-col justify-between bg-slate-100 text-slate-800 antialiased selection:bg-blue-500 selection:text-white">
@@ -137,7 +146,6 @@
                                 Distance Km to nm
                             </th>
                             <!-- Dynamic Header Columns Injected by JS -->
-                            <template id="headerColsTemplate"></template>
                             <tbody id="gridHeaderRow" class="contents"></tbody>
                         </tr>
                     </thead>
@@ -209,13 +217,13 @@
         // Number of max columns supported
         let totalColumns = 20;
 
-        // Default sample input values
-        let inputValues = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        // Default sample input string values to preserve accurate text during editing (allows decimals like 0.5 or .5)
+        let inputValues = ["1", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"];
 
         // Primary Excel Mathematical Engine replicating exact formulas provided
-        function computeExcelLogic(val, e4) {
-            const num = parseFloat(val);
-            if (isNaN(num) || val === '' || val === null) {
+        function computeExcelLogic(valStr, e4) {
+            const num = parseFloat(valStr);
+            if (isNaN(num) || valStr === '' || valStr === null) {
                 return { d6: '0.00', d7: '0.00', d8: '0.00', d9: '0.00', p8: '0.00' };
             }
 
@@ -281,7 +289,38 @@
             };
         }
 
-        // Full dynamic grid re-render matching user selection and image style
+        // Dynamic table update logic preserving direct input DOM elements for tab navigation
+        function updateCalculatedOutputsOnly() {
+            const inUnit = document.getElementById('inputUnitSelect').value;
+            const outUnit = document.getElementById('outputUnitSelect').value;
+
+            // Define which output row keys exist
+            const keys = [];
+            if (outUnit === 'all') {
+                keys.push('m', 'ft', 'nm', 'km', 'sdf');
+            } else {
+                keys.push(outUnit);
+            }
+
+            // Update output cells directly without recreating input DOM
+            for (let i = 0; i < totalColumns; i++) {
+                const valStr = inputValues[i] !== undefined ? inputValues[i] : "0";
+                const computed = computeExcelLogic(valStr, inUnit);
+
+                keys.forEach(key => {
+                    const cell = document.getElementById(`out_cell_${key}_${i}`);
+                    const textSpan = document.getElementById(`out_text_${key}_${i}`);
+                    if (cell && textSpan) {
+                        const newCalculatedVal = computed[key];
+                        textSpan.innerText = newCalculatedVal;
+                        // Update click handler data
+                        cell.setAttribute('onclick', `copyToClipboard('${newCalculatedVal}', '${key.toUpperCase()} (#${i+1})')`);
+                    }
+                });
+            }
+        }
+
+        // Full grid layout build
         function renderGrid() {
             const inUnit = document.getElementById('inputUnitSelect').value;
             const outUnit = document.getElementById('outputUnitSelect').value;
@@ -298,7 +337,7 @@
             headerRow.innerHTML = '';
             for (let i = 1; i <= totalColumns; i++) {
                 const th = document.createElement('th');
-                th.className = "py-2.5 px-3 border-r border-slate-300 font-mono text-slate-500 font-normal min-w-[80px]";
+                th.className = "py-2.5 px-3 border-r border-slate-300 font-mono text-slate-500 font-normal min-w-[85px]";
                 th.innerText = `#${i}`;
                 headerRow.appendChild(th);
             }
@@ -309,7 +348,7 @@
 
             // --- A. GREEN INPUT ROW ---
             const trInput = document.createElement('tr');
-            trInput.className = "bg-[#e2efda] border-b border-slate-300 text-slate-900"; // Exact pale green from picture
+            trInput.className = "bg-[#e2efda] border-b border-slate-300 text-slate-900"; // Exact pale green
             
             let inputRowHtml = `
                 <td class="py-2.5 px-4 text-center font-bold border-r border-slate-300 text-slate-900 bg-[#d5e8d4]">
@@ -318,12 +357,18 @@
             `;
 
             for (let i = 0; i < totalColumns; i++) {
-                const val = inputValues[i] !== undefined ? inputValues[i] : 0;
+                const val = inputValues[i] !== undefined ? inputValues[i] : "0";
                 inputRowHtml += `
                     <td class="py-1 px-1 border-r border-slate-300">
-                        <input type="number" step="any" value="${val}"
+                        <input type="text" 
+                            id="input_col_${i}" 
+                            tabindex="${i + 1}"
+                            inputmode="decimal"
+                            value="${val}"
                             oninput="updateInputValue(${i}, this.value)"
-                            class="w-full text-center bg-transparent font-bold font-mono py-1 px-1 text-slate-900 focus:outline-none focus:bg-emerald-100 rounded">
+                            onfocus="this.select()"
+                            onkeydown="handleKeyDown(event, ${i})"
+                            class="w-full text-center bg-transparent font-bold font-mono py-1 px-1 text-slate-900 focus:outline-none focus:bg-emerald-100/90 focus:ring-2 focus:ring-emerald-500 rounded transition">
                     </td>
                 `;
             }
@@ -348,11 +393,10 @@
             rowSpecs.forEach(spec => {
                 const trOut = document.createElement('tr');
                 
-                // Color styling: Light blue for regular outputs (like picture), Amber for highlighted SDF
                 if (spec.isSdf) {
                     trOut.className = "bg-amber-100/80 border-b border-slate-300 text-amber-900 font-bold";
                 } else {
-                    trOut.className = "bg-[#deebf7] border-b border-slate-300 text-slate-900 font-bold"; // Exact light blue from picture
+                    trOut.className = "bg-[#deebf7] border-b border-slate-300 text-slate-900 font-bold";
                 }
 
                 let labelBg = spec.isSdf ? 'bg-amber-200/90' : 'bg-[#c6d9f1]';
@@ -364,15 +408,16 @@
                 `;
 
                 for (let i = 0; i < totalColumns; i++) {
-                    const inputVal = inputValues[i] !== undefined ? inputValues[i] : 0;
+                    const inputVal = inputValues[i] !== undefined ? inputValues[i] : "0";
                     const computed = computeExcelLogic(inputVal, inUnit);
                     const outputVal = computed[spec.id];
 
                     rowHtml += `
-                        <td class="py-2 px-1 border-r border-slate-300 relative group cursor-pointer hover:bg-sky-200/50 transition" 
+                        <td id="out_cell_${spec.id}_${i}" 
+                            class="py-2 px-1 border-r border-slate-300 relative group cursor-pointer hover:bg-sky-200/50 transition" 
                             onclick="copyToClipboard('${outputVal}', '${spec.label} (#${i+1})')">
                             <div class="flex items-center justify-center font-mono font-bold text-slate-900">
-                                <span>${outputVal}</span>
+                                <span id="out_text_${spec.id}_${i}">${outputVal}</span>
                             </div>
                         </td>
                     `;
@@ -383,36 +428,62 @@
             });
         }
 
-        // Live input value listener
+        // Live input value handler supporting decimals and fast calculation
         function updateInputValue(index, val) {
+            // Keep value exact as typed by user so decimal points '.' can be entered without disruption
             inputValues[index] = val;
-            renderGrid();
+            updateCalculatedOutputsOnly();
         }
 
-        // Unit selector change trigger
+        // Handle keyboard navigation (Enter key moves to next column input, Tab is native)
+        function handleKeyDown(event, currentIndex) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const nextCol = (currentIndex + 1) % totalColumns;
+                const nextInput = document.getElementById(`input_col_${nextCol}`);
+                if (nextInput) {
+                    nextInput.focus();
+                    nextInput.select();
+                }
+            }
+        }
+
+        // Config dropdown change trigger
         function onConfigChange() {
             renderGrid();
         }
 
-        // Change displayed column count (10, 15, 20)
+        // Change column display count
         function changeColumnCount(count) {
             totalColumns = parseInt(count);
+            // Ensure array has required length
+            while (inputValues.length < totalColumns) {
+                inputValues.push("0");
+            }
             renderGrid();
         }
 
         // Fill sample dataset
         function fillSampleData() {
-            inputValues = [1, 2, 5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 100, 150, 200, 250, 300, 400, 500, 1000];
+            inputValues = ["1", "2.5", "5", "10", "15.2", "20", "25", "30.5", "40", "50", "60", "75.8", "100", "150", "200", "250", "300", "400", "500", "1000"];
             renderGrid();
         }
 
-        // Clear input values
+        // Clear all inputs
         function clearAllInputs() {
-            inputValues = new Array(20).fill(0);
+            inputValues = new Array(20).fill("0");
             renderGrid();
+            // Focus on first box for user convenience
+            setTimeout(() => {
+                const firstInput = document.getElementById('input_col_0');
+                if (firstInput) {
+                    firstInput.focus();
+                    firstInput.select();
+                }
+            }, 50);
         }
 
-        // Copy utility with toast confirmation
+        // Copy utility with toast notification
         function copyToClipboard(text, label) {
             if (text === undefined || text === null) return;
 
@@ -432,7 +503,7 @@
             document.body.removeChild(textarea);
         }
 
-        // Show toast popup
+        // Toast feedback trigger
         function showToast(msg) {
             const toast = document.getElementById('toast');
             const toastMsg = document.getElementById('toastMsg');
@@ -447,7 +518,7 @@
             }, 1800);
         }
 
-        // Toggle Modal
+        // Toggle Logic Formula Modal
         function toggleModal() {
             const modal = document.getElementById('formulaModal');
             modal.classList.toggle('hidden');
